@@ -1,0 +1,27 @@
+# Ambientes Virtuales Python
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+dist/
+build/
+
+# IDE y OS
+.vscode/
+.idea/
+.DS_Store
+
+# Data Local
+data/raw/*
+data/processed/*
+data/duckdb/*
+!data/**/.gitkeep
+postgis_data/
+
+# Entornos y Secretos
+.env
+.env.local
