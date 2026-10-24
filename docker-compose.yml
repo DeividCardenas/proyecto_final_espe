@@ -1,4 +1,30 @@
-version: '3.8'
+name: chicago-road-safety
+
+networks:
+  chicago_network:
+    name: chicago_network
+    driver: bridge
+
+volumes:
+  postgis_data:
+    name: chicago_postgis_data
+  duckdb_data:
+    name: chicago_duckdb_data
+
+x-db-env: &db-env
+  POSTGRES_DB: ${POSTGRES_DB:-chicago_safety}
+  POSTGRES_USER: ${POSTGRES_USER:-chicago_admin}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chicago_secure_pass_2026}
+
+x-backend-env: &backend-env
+  ENVIRONMENT: ${ENVIRONMENT:-production}
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-chicago_admin}:${POSTGRES_PASSWORD:-chicago_secure_pass_2026}@db:5432/${POSTGRES_DB:-chicago_safety}
+  SYNC_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-chicago_admin}:${POSTGRES_PASSWORD:-chicago_secure_pass_2026}@db:5432/${POSTGRES_DB:-chicago_safety}
+  CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://localhost:80,http://localhost:3000,http://localhost:5173}
+  SOCRATA_APP_TOKEN: ${SOCRATA_APP_TOKEN:-}
+  DATA_DIR: /data
+  MODEL_PATH: /app/app/ml/models/chicago_risk_xgboost.joblib
+  DUCKDB_PATH: /data/duckdb/chicago_olap.duckdb
 
 services:
   db:
@@ -6,15 +32,13 @@ services:
     container_name: chicago_postgis
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-chicago_admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chicago_secure_pass_2026}
-      POSTGRES_DB: ${POSTGRES_DB:-chicago_safety}
+      <<: *db-env
     ports:
       - "5432:5432"
     shm_size: 1g
     volumes:
       - postgis_data:/var/lib/postgresql/data
-    command: 
+    command:
       - "postgres"
       - "-c"
       - "shared_buffers=1GB"
@@ -25,31 +49,105 @@ services:
       - "-c"
       - "random_page_cost=1.1"
       - "-c"
+      - "effective_cache_size=3GB"
+      - "-c"
       - "max_connections=200"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chicago_admin} -d ${POSTGRES_DB:-chicago_safety}"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 10s
+    networks:
+      - chicago_network
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4096M
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: chicago_backend
+    image: chicago-backend:latest
+    container_name: chicago_fastapi
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
-    env_file:
-      - .env
     environment:
-      # Modificamos la URL para que apunte al nombre del contenedor 'db' en lugar de 'localhost'
-      DATABASE_URL: postgresql+psycopg://chicago_admin:chicago_secure_pass_2026@db:5432/chicago_safety
+      <<: *backend-env
+    volumes:
+      - duckdb_data:/data/duckdb
+      - ./backend/app/ml/models:/app/app/ml/models:ro
     ports:
       - "8000:8000"
-    volumes:
-      - ./backend:/app
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - chicago_network
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2048M
 
-volumes:
-  postgis_data:
+  # Contenedor de trabajos por lotes (ETL / ML). No se levanta con `up`:
+  #   docker compose run --rm etl python -m app.services.etl.pipeline
+  etl:
+    image: chicago-backend:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    profiles: ["jobs"]
+    healthcheck:
+      disable: true
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      <<: *backend-env
+    volumes:
+      # Código montado en vivo: los trabajos usan siempre la versión del repositorio
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+      - ./backend/tests:/app/tests
+      - ./data/raw:/data/raw
+      - ./data/processed:/data/processed
+      - duckdb_data:/data/duckdb
+    networks:
+      - chicago_network
+    deploy:
+      resources:
+        limits:
+          memory: 6144M
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: chicago_frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - chicago_network
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
