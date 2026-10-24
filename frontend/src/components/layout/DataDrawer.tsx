@@ -11,7 +11,7 @@ export function DataDrawer() {
   if (!drawerOpen) return null;
   const rows = data?.features ?? [];
   return (
-    <section className="flex h-[320px] shrink-0 flex-col border-t border-slate-800 bg-slate-950">
+    <section className="hud-aside flex h-[320px] shrink-0 flex-col border-t border-slate-800 bg-slate-950/90">
       <header className="flex items-center justify-between px-3 py-1.5">
         <p className="text-xs text-slate-300">
           <b className="tabular-nums">{rows.length.toLocaleString("es")}</b> siniestros en la ventana visible

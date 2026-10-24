@@ -5,12 +5,20 @@ import { useQueryFilters } from "@/hooks/useViewportCrashes";
 import { useFilterStore } from "@/stores/useFilterStore";
 import { Card } from "@/components/ui";
 
-export const tooltipStyle = {
-  contentStyle: { background: "#0f172a", border: "1px solid #334155", borderRadius: 8, fontSize: 11 },
-  labelStyle: { color: "#e2e8f0" },
-};
+import type { ThemeDef } from "@/theme/themes";
+import { useTheme } from "@/stores/useThemeStore";
+
+export function tooltipStyleFor(t: ThemeDef) {
+  return {
+    contentStyle: { background: t.chart.tooltipBg, border: `1px solid ${t.chart.tooltipBorder}`, borderRadius: 4, fontSize: 11 },
+    labelStyle: { color: "rgb(var(--slate-200))" },
+    itemStyle: { color: "rgb(var(--slate-200))" },
+  };
+}
 
 export function HourlyDistribution() {
+  const t = useTheme();
+  const tooltipStyle = tooltipStyleFor(t);
   const f = useQueryFilters();
   const setHourRange = useFilterStore((s) => s.setHourRange);
   // La distribución horaria ignora el filtro de horas para mostrar el contexto completo
@@ -26,14 +34,14 @@ export function HourlyDistribution() {
       <div className="h-40">
         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <BarChart data={data} margin={{ left: -18, right: 4, top: 4 }}>
-            <CartesianGrid stroke="#1e293b" vertical={false} />
-            <XAxis dataKey="hour" tick={{ fill: "#64748b", fontSize: 10 }} interval={2} />
-            <YAxis tick={{ fill: "#64748b", fontSize: 10 }} />
+            <CartesianGrid stroke={t.chart.grid} vertical={false} />
+            <XAxis dataKey="hour" tick={{ fill: t.chart.axis, fontSize: 10 }} interval={2} />
+            <YAxis tick={{ fill: t.chart.axis, fontSize: 10 }} />
             <Tooltip {...tooltipStyle} formatter={(v: number, n: string) => [v.toLocaleString("es"), n === "crashes" ? "Siniestros" : "Críticos"]}
               labelFormatter={(h) => `${h}:00`} />
-            <Bar dataKey="crashes" fill="#0ea5e9" radius={[2, 2, 0, 0]}
+            <Bar dataKey="crashes" fill={t.chart.primary} radius={[2, 2, 0, 0]}
               onClick={(d: { hour?: number }) => d.hour !== undefined && setHourRange([d.hour, d.hour])} cursor="pointer" />
-            <Bar dataKey="critical" fill="#dc2626" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="critical" fill={t.chart.critical} radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

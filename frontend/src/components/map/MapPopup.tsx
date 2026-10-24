@@ -20,7 +20,7 @@ export function MapPopup({ crashId, coordinates, onClose }: Props) {
 
   useEffect(() => {
     if (!map) return;
-    const popup = new Popup({ maxWidth: "320px", className: "crash-popup", closeOnClick: false })
+    const popup = new Popup({ maxWidth: "360px", className: "crash-popup", closeOnClick: false })
       .setLngLat(coordinates)
       .setDOMContent(node)
       .addTo(map);
@@ -32,7 +32,7 @@ export function MapPopup({ crashId, coordinates, onClose }: Props) {
   }, [map, node, coordinates, onClose]);
 
   return createPortal(
-    <div className="text-slate-100 text-xs space-y-2 min-w-[240px]">
+    <div className="text-slate-100 text-xs space-y-2 w-[300px]">
       {isLoading || !data ? (
         <p className="text-slate-400">Cargando detalle…</p>
       ) : (
@@ -44,9 +44,9 @@ export function MapPopup({ crashId, coordinates, onClose }: Props) {
             <span className="text-slate-400">{data.date.replace("T", " ")}</span>
           </div>
           <p className="font-semibold text-sm leading-tight">{data.street || "Ubicación sin dirección"}</p>
-          <dl className="grid grid-cols-2 gap-x-3 gap-y-1">
+          <dl className="grid grid-cols-[92px_1fr] gap-x-3 gap-y-1 [&_dd]:break-words [&_dd]:leading-snug">
             <dt className="text-slate-400">Tipo</dt><dd>{data.crash_type ?? "—"}</dd>
-            <dt className="text-slate-400">Causa</dt><dd className="truncate" title={data.cause ?? ""}>{data.cause ?? "—"}</dd>
+            <dt className="text-slate-400">Causa</dt><dd>{data.cause ?? "—"}</dd>
             <dt className="text-slate-400">Lesionados</dt><dd>{data.injuries} {data.fatal > 0 && <b className="text-red-400">({data.fatal} fatal)</b>}</dd>
             <dt className="text-slate-400">Clima / luz</dt><dd>{data.weather ?? "—"} / {data.lighting ?? "—"}</dd>
             <dt className="text-slate-400">Velocidad</dt><dd>{data.speed ?? "—"} mph</dd>

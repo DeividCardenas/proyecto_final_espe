@@ -23,7 +23,7 @@ export function AnalyticsPanel() {
   if (!panelOpen) return null;
   return (
     <Tabs.Root value={activeTab} onValueChange={(v) => setTab(v as PanelTab)}
-      className="flex w-[360px] shrink-0 flex-col border-l border-slate-800 bg-slate-950">
+      className="hud-aside flex w-[360px] shrink-0 flex-col border-l border-slate-800 bg-slate-950/85">
       <Tabs.List className="flex border-b border-slate-800 px-2" aria-label="Paneles">
         {TABS.map((t) => (
           <Tabs.Trigger key={t.id} value={t.id}

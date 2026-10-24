@@ -3,10 +3,13 @@ import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAx
 import { crashService } from "@/services/crashService";
 import { useQueryFilters } from "@/hooks/useViewportCrashes";
 import { Card } from "@/components/ui";
-import { tooltipStyle } from "./HourlyDistribution";
+import { tooltipStyleFor } from "./HourlyDistribution";
+import { useTheme } from "@/stores/useThemeStore";
 
 /** Volumen vehicular (AADT, por decil) frente a tasa de siniestros críticos. */
 export function RiskCorrelationPlot() {
+  const t = useTheme();
+  const tooltipStyle = tooltipStyleFor(t);
   const f = useQueryFilters();
   const { data = [] } = useQuery({
     queryKey: ["aadt-severity", f],
@@ -20,14 +23,14 @@ export function RiskCorrelationPlot() {
       <div className="h-40">
         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <ScatterChart margin={{ left: -14, right: 8, top: 6 }}>
-            <CartesianGrid stroke="#1e293b" />
-            <XAxis type="number" dataKey="mean_aadt" name="AADT" tick={{ fill: "#64748b", fontSize: 10 }}
+            <CartesianGrid stroke={t.chart.grid} />
+            <XAxis type="number" dataKey="mean_aadt" name="AADT" tick={{ fill: t.chart.axis, fontSize: 10 }}
               tickFormatter={(v: number) => `${Math.round(v / 1000)}k`} domain={["auto", "auto"]} />
-            <YAxis type="number" dataKey="critical_pct" name="% críticos" unit="%" tick={{ fill: "#64748b", fontSize: 10 }} />
+            <YAxis type="number" dataKey="critical_pct" name="% críticos" unit="%" tick={{ fill: t.chart.axis, fontSize: 10 }} />
             <ZAxis type="number" dataKey="crashes" range={[40, 220]} name="Siniestros" />
             <Tooltip {...tooltipStyle} cursor={{ strokeDasharray: "3 3" }}
               formatter={(v: number, n: string) => [n === "% críticos" ? `${v.toFixed(2)}%` : v.toLocaleString("es"), n]} />
-            <Scatter data={points} fill="#f472b6" />
+            <Scatter data={points} fill={t.chart.series[3]} />
           </ScatterChart>
         </ResponsiveContainer>
       </div>

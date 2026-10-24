@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Valores por defecto (tema Clásico) antes de que React aplique el tema guardado */
+:root {
+  --slate-50: 248 250 252; --slate-100: 241 245 249; --slate-200: 226 232 240; --slate-300: 203 213 225;
+  --slate-400: 148 163 184; --slate-500: 100 116 139; --slate-600: 71 85 105; --slate-700: 51 65 85;
+  --slate-800: 30 41 59; --slate-900: 15 23 42; --slate-950: 2 6 23;
+  --cyan-50: 236 254 255; --cyan-100: 207 250 254; --cyan-200: 165 243 252; --cyan-300: 103 232 249;
+  --cyan-400: 34 211 238; --cyan-500: 6 182 212; --cyan-600: 8 145 178; --cyan-700: 14 116 144;
+  --cyan-800: 21 94 117; --cyan-900: 22 78 99; --cyan-950: 8 51 68;
+  --font-display: "Inter"; --font-body: "Inter"; --font-mono: ui-monospace;
+  --accent: #06b6d4; --accent-2: #dc2626; --critical: #dc2626;
+  color-scheme: dark;
+}
+
 html,
 body,
 #root {
@@ -11,31 +24,38 @@ body,
 body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
+  background: rgb(var(--slate-950));
 }
 
-/* Popup de MapLibre con tema oscuro */
+.hud-title {
+  font-family: var(--font-display), Inter, sans-serif;
+}
+
+/* ============================================================================
+   Popup de MapLibre (todas las pieles)
+   ========================================================================== */
 .crash-popup .maplibregl-popup-content {
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: rgb(var(--slate-900) / 0.96);
+  border: 1px solid rgb(var(--cyan-500) / 0.45);
   border-radius: 10px;
   padding: 12px 14px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
 }
 .crash-popup .maplibregl-popup-tip {
-  border-top-color: #0f172a !important;
-  border-bottom-color: #0f172a !important;
+  border-top-color: rgb(var(--slate-900)) !important;
+  border-bottom-color: rgb(var(--slate-900)) !important;
 }
 .crash-popup .maplibregl-popup-close-button {
-  color: #94a3b8;
+  color: rgb(var(--slate-400));
   font-size: 16px;
   padding: 0 6px;
 }
 .maplibregl-ctrl-attrib {
-  background: rgba(15, 23, 42, 0.8) !important;
-  color: #64748b;
+  background: rgb(var(--slate-950) / 0.8) !important;
+  color: rgb(var(--slate-500));
 }
 .maplibregl-ctrl-attrib a {
-  color: #94a3b8;
+  color: rgb(var(--slate-400));
 }
 
 ::-webkit-scrollbar {
@@ -43,6 +63,178 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: rgb(var(--slate-700));
   border-radius: 4px;
+}
+
+/* ============================================================================
+   TRON · THE GRID
+   Líneas de luz finas, rejilla en perspectiva, resplandor cian, Orbitron.
+   ========================================================================== */
+[data-theme="tron"] .hud-app {
+  background:
+    linear-gradient(rgb(var(--cyan-500) / 0.05) 1px, transparent 1px) 0 0 / 40px 40px,
+    linear-gradient(90deg, rgb(var(--cyan-500) / 0.05) 1px, transparent 1px) 0 0 / 40px 40px,
+    rgb(var(--slate-950));
+}
+[data-theme="tron"] .hud-header {
+  border-bottom: 1px solid rgb(var(--cyan-400) / 0.7);
+  box-shadow: 0 0 18px rgb(var(--cyan-400) / 0.35), inset 0 -1px 0 rgb(var(--cyan-300) / 0.4);
+}
+[data-theme="tron"] .hud-title {
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px rgb(var(--cyan-400) / 0.8);
+}
+[data-theme="tron"] .hud-panel {
+  border-color: rgb(var(--cyan-500) / 0.45);
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgb(var(--cyan-900) / 0.25), rgb(var(--slate-950) / 0.85));
+  box-shadow: 0 0 0 1px rgb(var(--cyan-400) / 0.08), 0 0 14px rgb(var(--cyan-400) / 0.12),
+    inset 0 0 18px rgb(var(--cyan-400) / 0.05);
+}
+[data-theme="tron"] .hud-panel h3 {
+  font-family: var(--font-display);
+  color: rgb(var(--cyan-300));
+  letter-spacing: 0.16em;
+}
+[data-theme="tron"] .hud-aside {
+  border-color: rgb(var(--cyan-500) / 0.4);
+  box-shadow: inset -1px 0 12px rgb(var(--cyan-400) / 0.08);
+}
+[data-theme="tron"] .hud-kpi {
+  text-shadow: 0 0 10px rgb(var(--cyan-300) / 0.55);
+}
+
+/* ============================================================================
+   CYBERPUNK · NIGHT CITY
+   Esquinas recortadas, franjas amarillas, ruido de escaneo y glitch.
+   ========================================================================== */
+[data-theme="cyberpunk"] .hud-app {
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at 80% -10%, rgba(255, 0, 60, 0.12), transparent 60%),
+    rgb(var(--slate-950));
+}
+[data-theme="cyberpunk"] .hud-header {
+  border-bottom: 2px solid rgb(var(--cyan-400));
+  background: linear-gradient(90deg, rgb(var(--cyan-400) / 0.12), transparent 40%), rgb(var(--slate-950));
+}
+[data-theme="cyberpunk"] .hud-title {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+[data-theme="cyberpunk"] .hud-logo-text {
+  animation: cp-glitch 6s infinite steps(1);
+}
+[data-theme="cyberpunk"] .hud-panel {
+  border: 1px solid rgb(var(--cyan-400) / 0.35);
+  border-left: 3px solid rgb(var(--cyan-400));
+  border-radius: 0;
+  background: rgb(var(--slate-900) / 0.92);
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+[data-theme="cyberpunk"] .hud-panel h3 {
+  color: rgb(var(--cyan-400));
+  letter-spacing: 0.12em;
+  font-weight: 700;
+}
+[data-theme="cyberpunk"] .hud-panel h3::before {
+  content: "// ";
+  color: #ff003c;
+}
+[data-theme="cyberpunk"] .hud-aside {
+  border-color: rgb(var(--cyan-400) / 0.25);
+}
+[data-theme="cyberpunk"] .hud-kpi {
+  text-shadow: 2px 0 rgba(255, 0, 60, 0.45), -2px 0 rgba(0, 240, 255, 0.35);
+}
+@keyframes cp-glitch {
+  0%, 92%, 100% { transform: none; text-shadow: none; }
+  93% { transform: translateX(2px) skewX(-8deg); text-shadow: -2px 0 #00f0ff, 2px 0 #ff003c; }
+  95% { transform: translateX(-2px); text-shadow: 2px 0 #00f0ff, -2px 0 #ff003c; }
+  97% { transform: translateX(1px) skewX(4deg); }
+}
+
+/* ============================================================================
+   NERV · MAGI SYSTEM
+   Serif de alto contraste, franjas de peligro, hexágonos y verde terminal.
+   ========================================================================== */
+[data-theme="nerv"] .hud-app {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='98' viewBox='0 0 56 98'%3E%3Cpath d='M28 66L0 50V16L28 0l28 16v34L28 66zm0 32L0 82' fill='none' stroke='%23ff8c1a' stroke-opacity='0.05' stroke-width='1'/%3E%3C/svg%3E"),
+    rgb(var(--slate-950));
+}
+[data-theme="nerv"] .hud-header {
+  position: relative;
+  border-bottom: none;
+}
+[data-theme="nerv"] .hud-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 6px;
+  background: repeating-linear-gradient(-45deg, #ff8c1a 0 10px, #0b0604 10px 20px);
+  z-index: 5;
+  pointer-events: none;
+}
+[data-theme="nerv"] .hud-title {
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  transform: scaleY(1.12);
+}
+[data-theme="nerv"] .hud-panel {
+  border: 1px solid rgb(var(--cyan-500) / 0.5);
+  border-radius: 0;
+  background: linear-gradient(180deg, rgb(var(--cyan-900) / 0.25), rgb(var(--slate-950) / 0.9));
+}
+/* Ancla para la esquina verde, sin romper paneles que ya son absolutos (leyenda, menús) */
+[data-theme="nerv"] .hud-panel:not(.absolute) {
+  position: relative;
+}
+[data-theme="nerv"] .hud-panel::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 10px;
+  height: 10px;
+  border-top: 2px solid #36ff7a;
+  border-left: 2px solid #36ff7a;
+}
+[data-theme="nerv"] .hud-panel h3 {
+  font-family: var(--font-display);
+  color: rgb(var(--cyan-400));
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  font-size: 12px;
+}
+[data-theme="nerv"] .hud-aside {
+  border-color: rgb(var(--cyan-500) / 0.35);
+}
+[data-theme="nerv"] .hud-kpi {
+  font-family: var(--font-mono);
+  color: #36ff7a;
+  text-shadow: 0 0 6px rgba(54, 255, 122, 0.45);
+}
+
+/* Líneas de escaneo CRT sobre toda la interfaz (Cyberpunk y NERV) */
+[data-theme="cyberpunk"] #root::after,
+[data-theme="nerv"] #root::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.14) 0 1px, transparent 1px 3px);
+  mix-blend-mode: multiply;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="cyberpunk"] .hud-logo-text {
+    animation: none;
+  }
 }

@@ -29,9 +29,9 @@ export function KpiSummaryCards() {
   return (
     <div className={cn("grid grid-cols-2 gap-2", isLoading && "opacity-60")} data-testid="kpi-cards">
       {items.map((it) => (
-        <div key={it.label} className="rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-2">
+        <div key={it.label} className="hud-panel rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-2">
           <p className="text-[10px] uppercase tracking-wide text-slate-500">{it.label}</p>
-          <p className={cn("text-lg font-semibold tabular-nums text-slate-100", it.accent)}>{it.value}</p>
+          <p className={cn("hud-kpi text-lg font-semibold tabular-nums text-slate-100", it.accent)}>{it.value}</p>
         </div>
       ))}
     </div>

@@ -27,7 +27,7 @@ export function addCrashTileLayers(map: MLMap, tileUrl: string) {
       maxzoom: 16,
       paint: {
         // ln(1+n): las celdas agregadas de zoom bajo no saturan la rampa de densidad
-        "heatmap-weight": ["*", ["ln", ["+", 1, ["coalesce", ["get", "count"], 1]]], severityWeight, 0.12],
+        "heatmap-weight": ["*", ["ln", ["+", 1, ["coalesce", ["get", "count"], 1]]], severityWeight, 0.035],
         "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 9, 0.25, 12, 0.6, 15, 1.2],
         "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 9, 9, 13, 14, 16, 22],
         "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 13, 0.85, 16, 0.25],

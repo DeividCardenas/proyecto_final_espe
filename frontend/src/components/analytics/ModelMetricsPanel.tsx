@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { crashService } from "@/services/crashService";
 import { Card, cn, fmtNumber, fmtPct } from "@/components/ui";
-import { tooltipStyle } from "./HourlyDistribution";
+import { tooltipStyleFor } from "./HourlyDistribution";
+import { useTheme } from "@/stores/useThemeStore";
 
 const GATE_LABELS: Record<string, string> = {
   auc_roc: "AUC-ROC multiclase ≥ 0.70",
@@ -12,6 +13,8 @@ const GATE_LABELS: Record<string, string> = {
 };
 
 export function ModelMetricsPanel() {
+  const t = useTheme();
+  const tooltipStyle = tooltipStyleFor(t);
   const { data, isError } = useQuery({ queryKey: ["model-metrics"], queryFn: crashService.modelMetrics, staleTime: Infinity });
   if (isError) return <p className="text-xs text-slate-400">Aún no hay un modelo entrenado.</p>;
   if (!data) return <p className="text-xs text-slate-500">Cargando métricas…</p>;
@@ -63,7 +66,7 @@ export function ModelMetricsPanel() {
                   <td className="text-left text-slate-400">{labels[i]}</td>
                   {row.map((v, j) => (
                     <td key={j} className="p-0.5">
-                      <div className="rounded py-1" style={{ background: `rgba(14,165,233,${(v / total) * 0.85})` }}>{fmtNumber(v)}</div>
+                      <div className="rounded py-1" style={{ background: `rgb(var(--cyan-500) / ${(v / total) * 0.75})` }}>{fmtNumber(v)}</div>
                     </td>
                   ))}
                 </tr>
@@ -77,9 +80,9 @@ export function ModelMetricsPanel() {
           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <BarChart data={importance} layout="vertical" margin={{ left: 0, right: 8 }}>
               <XAxis type="number" hide />
-              <YAxis type="category" dataKey="name" width={120} tick={{ fill: "#94a3b8", fontSize: 9 }} />
+              <YAxis type="category" dataKey="name" width={120} tick={{ fill: t.chart.axis, fontSize: 9 }} />
               <Tooltip {...tooltipStyle} formatter={(v: number) => v.toFixed(4)} />
-              <Bar dataKey="value" fill="#a78bfa" radius={[0, 3, 3, 0]} />
+              <Bar dataKey="value" fill={t.chart.primary} radius={[0, 3, 3, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

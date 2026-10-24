@@ -21,6 +21,8 @@ import {
 } from "./layers/TrafficAADTLayer";
 import { addSegmentLayer, SEGMENT_LAYER, setSegmentData } from "./layers/SegmentRiskLayer";
 import { MapPopup } from "./MapPopup";
+import { useTheme } from "@/stores/useThemeStore";
+import { applyMapTheme } from "@/theme/mapTheme";
 
 const LAYER_GROUPS: Record<LayerId, string[]> = {
   heatmap: [HEATMAP_LAYER],
@@ -107,6 +109,12 @@ export function MapContainer({ children }: { children?: ReactNode }) {
       map.off("moveend", sync);
     };
   }, [map, loaded, setViewport]);
+
+  // --- Piel visual: recolorea mapa base y capas de datos ---
+  const theme = useTheme();
+  useEffect(() => {
+    if (map && loaded) applyMapTheme(map, theme);
+  }, [map, loaded, theme]);
 
   // --- Rango de fechas: filtro en servidor sobre las teselas MVT ---
   useEffect(() => {

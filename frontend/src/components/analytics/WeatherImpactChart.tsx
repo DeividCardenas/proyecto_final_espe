@@ -3,11 +3,14 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { crashService } from "@/services/crashService";
 import { useQueryFilters } from "@/hooks/useViewportCrashes";
 import { Card, fmtPct } from "@/components/ui";
-import { tooltipStyle } from "./HourlyDistribution";
+import { tooltipStyleFor } from "./HourlyDistribution";
+import { useTheme } from "@/stores/useThemeStore";
 
-const COLORS = ["#38bdf8", "#818cf8", "#a78bfa", "#f472b6", "#fb923c", "#facc15", "#4ade80", "#94a3b8"];
 
 export function WeatherImpactChart() {
+  const t = useTheme();
+  const tooltipStyle = tooltipStyleFor(t);
+  const COLORS = t.chart.series;
   const f = useQueryFilters();
   const { data = [] } = useQuery({
     queryKey: ["weather", f],
