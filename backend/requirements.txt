@@ -1,20 +1,44 @@
-# Core API & Async Server
-fastapi>=0.109.2
-uvicorn[standard]>=0.27.1
+# ==============================================================================
+# FASTAPI & ASGI WEB CORE
+# ==============================================================================
+fastapi==0.115.8
+uvicorn[standard]==0.34.0
+pydantic==2.10.6
+pydantic-settings==2.7.1
+starlette==0.45.3
 
-# Database & ORM
-SQLAlchemy>=2.0.25
-GeoAlchemy2>=0.14.3
-alembic>=1.13.1
-psycopg[binary,pool]>=3.1.18
-psycopg2-binary>=2.9.9
+# ==============================================================================
+# DATABASE ORM, DRIVERS & SPATIAL EXTENSIONS
+# ==============================================================================
+SQLAlchemy==2.0.38
+GeoAlchemy2==0.17.1
+asyncpg==0.30.0
+psycopg[binary]==3.2.5
+alembic==1.14.1
 
-# Data Processing
-pandas>=2.2.0
-geopandas>=0.14.3
-shapely>=2.0.2
+# ==============================================================================
+# GEOMETRÍA ESPACIAL & PROYECCIONES
+# ==============================================================================
+shapely==2.0.7
+pyproj==3.7.1
 
-# Utilities
-python-dotenv>=1.0.1
-pydantic>=2.6.1
-pydantic-settings>=2.2.1
+# ==============================================================================
+# INGESTA, CIENCIA DE DATOS & MOTOR OLAP ACELERADO
+# ==============================================================================
+numpy>=1.26.4,<2.0.0
+scipy==1.15.2
+pandas==2.2.3
+pyarrow==17.0.0
+scikit-learn==1.6.1
+# Variante CPU: evita ~800 MB de binarios CUDA/NCCL innecesarios en el contenedor
+xgboost-cpu==2.1.4
+joblib==1.4.2
+duckdb==1.1.1
+httpx==0.28.1
+
+# ==============================================================================
+# UTILIDADES, SEGURIDAD & TESTING
+# ==============================================================================
+python-dotenv==1.0.1
+pytest==8.3.3
+pytest-asyncio==0.24.0

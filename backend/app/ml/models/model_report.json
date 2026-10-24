@@ -1,0 +1,518 @@
+{
+  "trained_at": "2026-10-24T00:15:11.893546+00:00",
+  "n_rows": 418170,
+  "class_distribution": {
+    "Moderado": 0.7399598249515748,
+    "Bajo": 0.2443192959801038,
+    "Cr\u00edtico": 0.015720879068321494
+  },
+  "thresholds_required": {
+    "auc_roc": 0.7,
+    "recall_critical": 0.6,
+    "precision_critical": 0.65,
+    "cv_variance": 0.05
+  },
+  "models": {
+    "xgboost": {
+      "best_params": {
+        "max_depth": 6,
+        "min_child_weight": 10
+      },
+      "cv": {
+        "params": {
+          "max_depth": 6,
+          "min_child_weight": 10
+        },
+        "auc_mean": 0.7036835229821534,
+        "auc_std": 0.0040465930963371356,
+        "auc_cv_variation": 0.005750586683041837,
+        "recall_critical_mean": 0.5302373233407717
+      },
+      "cv_folds": [
+        {
+          "auc_roc_ovr_macro": 0.7048337481642405,
+          "auc_roc_critical_vs_rest": 0.8497043130312578,
+          "recall_critical": 0.5570291777188329,
+          "precision_critical": 0.09186351706036745,
+          "recall_macro": 0.5631645115678005
+        },
+        {
+          "auc_roc_ovr_macro": 0.710168179261936,
+          "auc_roc_critical_vs_rest": 0.856422353299301,
+          "recall_critical": 0.583554376657825,
+          "precision_critical": 0.09201171058134672,
+          "recall_macro": 0.5700499063371262
+        },
+        {
+          "auc_roc_ovr_macro": 0.7043978293830255,
+          "auc_roc_critical_vs_rest": 0.8386700189122434,
+          "recall_critical": 0.493368700265252,
+          "precision_critical": 0.08255659121171771,
+          "recall_macro": 0.5447527555676739
+        },
+        {
+          "auc_roc_ovr_macro": 0.700761145242616,
+          "auc_roc_critical_vs_rest": 0.839055045823143,
+          "recall_critical": 0.5145888594164456,
+          "precision_critical": 0.08347676419965576,
+          "recall_macro": 0.548978595519709
+        },
+        {
+          "auc_roc_ovr_macro": 0.6982567128589489,
+          "auc_roc_critical_vs_rest": 0.8354755386759452,
+          "recall_critical": 0.5026455026455027,
+          "precision_critical": 0.08207343412526998,
+          "recall_macro": 0.5433371885137782
+        }
+      ],
+      "cv_grid": [
+        {
+          "params": {
+            "max_depth": 4,
+            "min_child_weight": 1
+          },
+          "auc_mean": 0.6942089927336021,
+          "auc_std": 0.0037402235793244174,
+          "auc_cv_variation": 0.005387748672912542,
+          "recall_critical_mean": 0.6516567723464275
+        },
+        {
+          "params": {
+            "max_depth": 4,
+            "min_child_weight": 10
+          },
+          "auc_mean": 0.6945427387651744,
+          "auc_std": 0.003874826952432962,
+          "auc_cv_variation": 0.005578961144021182,
+          "recall_critical_mean": 0.6627861283033697
+        },
+        {
+          "params": {
+            "max_depth": 6,
+            "min_child_weight": 1
+          },
+          "auc_mean": 0.7033057451402349,
+          "auc_std": 0.0037269031904284653,
+          "auc_cv_variation": 0.005299122346406175,
+          "recall_critical_mean": 0.497893422031353
+        },
+        {
+          "params": {
+            "max_depth": 6,
+            "min_child_weight": 10
+          },
+          "auc_mean": 0.7036835229821534,
+          "auc_std": 0.0040465930963371356,
+          "auc_cv_variation": 0.005750586683041837,
+          "recall_critical_mean": 0.5302373233407717
+        }
+      ],
+      "test_argmax": {
+        "auc_roc_ovr_macro": 0.7078862062528808,
+        "auc_roc_critical_vs_rest": 0.8634862512278927,
+        "recall_critical": 0.6684410646387833,
+        "precision_critical": 0.07442845046570702,
+        "recall_macro": 0.586176257903371
+      },
+      "test_f1_threshold": {
+        "threshold": 0.7515979409217834,
+        "auc_roc_ovr_macro": 0.7078862062528808,
+        "auc_roc_critical_vs_rest": 0.8634862512278927,
+        "recall_critical": 0.3490494296577947,
+        "precision_critical": 0.1588785046728972,
+        "recall_macro": 0.5201237835318732
+      },
+      "confusion_matrix": [
+        [
+          14208,
+          4955,
+          1270
+        ],
+        [
+          27796,
+          24429,
+          9661
+        ],
+        [
+          124,
+          312,
+          879
+        ]
+      ],
+      "classification_report": {
+        "0": {
+          "precision": 0.337257880744398,
+          "recall": 0.6953457642049625,
+          "f1-score": 0.4542126884161059,
+          "support": 20433.0
+        },
+        "1": {
+          "precision": 0.8226360452586207,
+          "recall": 0.3947419448663672,
+          "f1-score": 0.5334891135812714,
+          "support": 61886.0
+        },
+        "2": {
+          "precision": 0.07442845046570702,
+          "recall": 0.6684410646387833,
+          "f1-score": 0.13394285714285714,
+          "support": 1315.0
+        },
+        "accuracy": 0.4724872659444723,
+        "macro avg": {
+          "precision": 0.4114407921562419,
+          "recall": 0.586176257903371,
+          "f1-score": 0.3738815530467448,
+          "support": 83634.0
+        },
+        "weighted avg": {
+          "precision": 0.6922868449014479,
+          "recall": 0.4724872659444723,
+          "f1-score": 0.5078385585125633,
+          "support": 83634.0
+        }
+      },
+      "feature_importance": [
+        {
+          "feature": "num__has_pedestrian",
+          "importance": 0.1187034547328949
+        },
+        {
+          "feature": "num__has_cyclist",
+          "importance": 0.07341981679201126
+        },
+        {
+          "feature": "cat__first_crash_type_PEDESTRIAN",
+          "importance": 0.05644726753234863
+        },
+        {
+          "feature": "num__has_motorcycle",
+          "importance": 0.04405190050601959
+        },
+        {
+          "feature": "cat__first_crash_type_SIDESWIPE SAME DIRECTION",
+          "importance": 0.0356302335858345
+        },
+        {
+          "feature": "cat__first_crash_type_PARKED MOTOR VEHICLE",
+          "importance": 0.030998539179563522
+        },
+        {
+          "feature": "num__num_units",
+          "importance": 0.022993113845586777
+        },
+        {
+          "feature": "num__is_night",
+          "importance": 0.022758780047297478
+        },
+        {
+          "feature": "cat__first_crash_type_FIXED OBJECT",
+          "importance": 0.02253895252943039
+        },
+        {
+          "feature": "cat__first_crash_type_ANGLE",
+          "importance": 0.02226322330534458
+        },
+        {
+          "feature": "cat__first_crash_type_HEAD ON",
+          "importance": 0.020204057916998863
+        },
+        {
+          "feature": "cat__first_crash_type_PEDALCYCLIST",
+          "importance": 0.019577864557504654
+        },
+        {
+          "feature": "cat__trafficway_type_PARKING LOT",
+          "importance": 0.019022010266780853
+        },
+        {
+          "feature": "cat__first_crash_type_REAR END",
+          "importance": 0.01857059821486473
+        },
+        {
+          "feature": "cat__prim_contributory_cause_PHYSICAL CONDITION OF DRIVER",
+          "importance": 0.018362153321504593
+        },
+        {
+          "feature": "cat__prim_contributory_cause_DISREGARDING TRAFFIC SIGNALS",
+          "importance": 0.018258890137076378
+        },
+        {
+          "feature": "cat__prim_contributory_cause_IMPROPER BACKING",
+          "importance": 0.01595272682607174
+        },
+        {
+          "feature": "cat__first_crash_type_REAR TO FRONT",
+          "importance": 0.013890879228711128
+        },
+        {
+          "feature": "cat__first_crash_type_TURNING",
+          "importance": 0.013090595602989197
+        },
+        {
+          "feature": "cat__surface_group_UNKNOWN",
+          "importance": 0.01226890366524458
+        }
+      ],
+      "fit_seconds": 100.7
+    },
+    "random_forest": {
+      "best_params": {
+        "max_depth": 15,
+        "min_samples_leaf": 10
+      },
+      "cv": {
+        "params": {
+          "max_depth": 15,
+          "min_samples_leaf": 10
+        },
+        "auc_mean": 0.6943460066807262,
+        "auc_std": 0.004544635404556001,
+        "auc_cv_variation": 0.006545202767538508,
+        "recall_critical_mean": 0.5249252663045766
+      },
+      "cv_folds": [
+        {
+          "auc_roc_ovr_macro": 0.6933907059935934,
+          "auc_roc_critical_vs_rest": 0.8552160703877251,
+          "recall_critical": 0.5145888594164456,
+          "precision_critical": 0.10178384050367262,
+          "recall_macro": 0.5482406923458389
+        },
+        {
+          "auc_roc_ovr_macro": 0.7006115411683461,
+          "auc_roc_critical_vs_rest": 0.8628766349748385,
+          "recall_critical": 0.5649867374005305,
+          "precision_critical": 0.1143317230273752,
+          "recall_macro": 0.5682784905183467
+        },
+        {
+          "auc_roc_ovr_macro": 0.695599270791465,
+          "auc_roc_critical_vs_rest": 0.8511191100791826,
+          "recall_critical": 0.506631299734748,
+          "precision_critical": 0.10063224446786091,
+          "recall_macro": 0.5488041663355885
+        },
+        {
+          "auc_roc_ovr_macro": 0.6955357568941127,
+          "auc_roc_critical_vs_rest": 0.8536523827933281,
+          "recall_critical": 0.5225464190981433,
+          "precision_critical": 0.10244409776391056,
+          "recall_macro": 0.5546588764978496
+        },
+        {
+          "auc_roc_ovr_macro": 0.6865927585561136,
+          "auc_roc_critical_vs_rest": 0.839186880313796,
+          "recall_critical": 0.5158730158730159,
+          "precision_critical": 0.09415741187831965,
+          "recall_macro": 0.543795444153078
+        }
+      ],
+      "cv_grid": [
+        {
+          "params": {
+            "max_depth": 12,
+            "min_samples_leaf": 10
+          },
+          "auc_mean": 0.6830969880894844,
+          "auc_std": 0.004947428351189383,
+          "auc_cv_variation": 0.00724264407171018,
+          "recall_critical_mean": 0.5869689697275904
+        },
+        {
+          "params": {
+            "max_depth": 12,
+            "min_samples_leaf": 30
+          },
+          "auc_mean": 0.6781059462495769,
+          "auc_std": 0.004257429851824587,
+          "auc_cv_variation": 0.006278413978481233,
+          "recall_critical_mean": 0.6331045710356056
+        },
+        {
+          "params": {
+            "max_depth": 15,
+            "min_samples_leaf": 10
+          },
+          "auc_mean": 0.6943460066807262,
+          "auc_std": 0.004544635404556001,
+          "auc_cv_variation": 0.006545202767538508,
+          "recall_critical_mean": 0.5249252663045766
+        },
+        {
+          "params": {
+            "max_depth": 15,
+            "min_samples_leaf": 30
+          },
+          "auc_mean": 0.6881332097876547,
+          "auc_std": 0.003944696881521772,
+          "auc_cv_variation": 0.00573246113603358,
+          "recall_critical_mean": 0.5997024686679859
+        }
+      ],
+      "test_argmax": {
+        "auc_roc_ovr_macro": 0.6930116012006176,
+        "auc_roc_critical_vs_rest": 0.8587605105003503,
+        "recall_critical": 0.6304182509505704,
+        "precision_critical": 0.0843765903307888,
+        "recall_macro": 0.5744053513528794
+      },
+      "test_f1_threshold": {
+        "threshold": 0.5993098703274957,
+        "auc_roc_ovr_macro": 0.6930116012006176,
+        "auc_roc_critical_vs_rest": 0.8587605105003503,
+        "recall_critical": 0.376425855513308,
+        "precision_critical": 0.1388888888888889,
+        "recall_macro": 0.5178613016319895
+      },
+      "confusion_matrix": [
+        [
+          14407,
+          4956,
+          1070
+        ],
+        [
+          29966,
+          23994,
+          7926
+        ],
+        [
+          145,
+          341,
+          829
+        ]
+      ],
+      "classification_report": {
+        "0": {
+          "precision": 0.32362190574599037,
+          "recall": 0.7050849116625068,
+          "f1-score": 0.44362673399947655,
+          "support": 20433.0
+        },
+        "1": {
+          "precision": 0.8191594687788057,
+          "recall": 0.3877128914455612,
+          "f1-score": 0.5263169439661318,
+          "support": 61886.0
+        },
+        "2": {
+          "precision": 0.0843765903307888,
+          "recall": 0.6304182509505704,
+          "f1-score": 0.1488330341113106,
+          "support": 1315.0
+        },
+        "accuracy": 0.46906760408446324,
+        "macro avg": {
+          "precision": 0.4090526549518616,
+          "recall": 0.5744053513528794,
+          "f1-score": 0.3729255706923063,
+          "support": 83634.0
+        },
+        "weighted avg": {
+          "precision": 0.6865392603634644,
+          "recall": 0.46906760408446324,
+          "f1-score": 0.5001792439672348,
+          "support": 83634.0
+        }
+      },
+      "feature_importance": [
+        {
+          "feature": "num__has_pedestrian",
+          "importance": 0.1252143569097733
+        },
+        {
+          "feature": "cat__first_crash_type_PEDESTRIAN",
+          "importance": 0.1062367826992086
+        },
+        {
+          "feature": "num__num_units",
+          "importance": 0.05774229984452874
+        },
+        {
+          "feature": "num__has_cyclist",
+          "importance": 0.050019835990630764
+        },
+        {
+          "feature": "cat__first_crash_type_PARKED MOTOR VEHICLE",
+          "importance": 0.041196979944271475
+        },
+        {
+          "feature": "cat__first_crash_type_SIDESWIPE SAME DIRECTION",
+          "importance": 0.04062883034559017
+        },
+        {
+          "feature": "num__has_motorcycle",
+          "importance": 0.036780115946357064
+        },
+        {
+          "feature": "cat__first_crash_type_PEDALCYCLIST",
+          "importance": 0.03345775181647671
+        },
+        {
+          "feature": "num__latitude",
+          "importance": 0.02914071256010501
+        },
+        {
+          "feature": "num__longitude",
+          "importance": 0.026618151568908153
+        },
+        {
+          "feature": "num__hour_cos",
+          "importance": 0.025466483732716004
+        },
+        {
+          "feature": "num__grid_density",
+          "importance": 0.02476739219241867
+        },
+        {
+          "feature": "num__aadt_log",
+          "importance": 0.020705095331590376
+        },
+        {
+          "feature": "cat__first_crash_type_REAR END",
+          "importance": 0.01996743376715651
+        },
+        {
+          "feature": "num__crash_hour",
+          "importance": 0.01912474714453126
+        },
+        {
+          "feature": "cat__trafficway_type_FOUR WAY",
+          "importance": 0.018863400901154043
+        },
+        {
+          "feature": "num__hit_and_run",
+          "importance": 0.016339009113954882
+        },
+        {
+          "feature": "num__posted_speed_limit",
+          "importance": 0.01595534647035177
+        },
+        {
+          "feature": "cat__first_crash_type_FIXED OBJECT",
+          "importance": 0.015949060661984798
+        },
+        {
+          "feature": "num__crash_month",
+          "importance": 0.014416522406197188
+        }
+      ],
+      "fit_seconds": 95.0
+    }
+  },
+  "winner": "xgboost",
+  "gates": {
+    "auc_roc": true,
+    "recall_critical": true,
+    "precision_critical": false,
+    "cv_variance": true
+  },
+  "artifact": {
+    "path": "/app/app/ml/models/chicago_risk_xgboost.joblib",
+    "size_mb": 1.98,
+    "load_ms": 66.2,
+    "single_inference_ms": 4.72,
+    "gate_size_lt_100mb": true
+  },
+  "grid_cells_scored": 2339
+}
