@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import maplibregl from "maplibre-gl";
+import { Popup } from "maplibre-gl";
 import { useQuery } from "@tanstack/react-query";
 import { useMapInstance } from "@/context/MapContext";
 import { crashService } from "@/services/crashService";
@@ -20,7 +20,7 @@ export function MapPopup({ crashId, coordinates, onClose }: Props) {
 
   useEffect(() => {
     if (!map) return;
-    const popup = new maplibregl.Popup({ maxWidth: "320px", className: "crash-popup", closeOnClick: false })
+    const popup = new Popup({ maxWidth: "320px", className: "crash-popup", closeOnClick: false })
       .setLngLat(coordinates)
       .setDOMContent(node)
       .addTo(map);

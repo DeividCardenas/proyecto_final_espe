@@ -110,6 +110,11 @@ def export_gold(path: str | None = None) -> dict:
         settings.processed_dir.mkdir(parents=True, exist_ok=True)
         out = (settings.processed_dir / "gold_crash_facts.parquet").as_posix()
         con.execute(f"COPY gold_crash_facts TO '{out}' (FORMAT PARQUET, COMPRESSION ZSTD)")
+        # Conserva la rejilla de riesgo ML del último entrenamiento (Fase 3)
+        ml_grid = settings.processed_dir / "gold_grid_ml.parquet"
+        if ml_grid.exists():
+            con.execute(f"CREATE TABLE gold_grid_ml AS SELECT * FROM read_parquet('{ml_grid.as_posix()}')")
+            stats["gold_grid_ml"] = con.execute("SELECT count(*) FROM gold_grid_ml").fetchone()[0]
     # Reemplazo atómico: los lectores nunca ven un archivo a medio escribir
     os.replace(tmp, path)
     stats["elapsed_s"] = round(time.perf_counter() - t0, 1)

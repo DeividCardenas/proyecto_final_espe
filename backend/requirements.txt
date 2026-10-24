@@ -30,7 +30,8 @@ scipy==1.15.2
 pandas==2.2.3
 pyarrow==17.0.0
 scikit-learn==1.6.1
-xgboost==2.1.4
+# Variante CPU: evita ~800 MB de binarios CUDA/NCCL innecesarios en el contenedor
+xgboost-cpu==2.1.4
 joblib==1.4.2
 duckdb==1.1.1
 httpx==0.28.1

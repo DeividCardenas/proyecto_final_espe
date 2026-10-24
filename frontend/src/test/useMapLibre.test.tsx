@@ -28,7 +28,7 @@ class MockMap {
   }
 }
 
-vi.mock("maplibre-gl", () => ({ default: { Map: vi.fn((o) => new MockMap(o)) } }));
+vi.mock("maplibre-gl", () => ({ Map: vi.fn((o) => new MockMap(o)) }));
 
 const webgl = { ok: true };
 

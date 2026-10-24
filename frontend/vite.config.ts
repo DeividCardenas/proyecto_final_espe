@@ -16,6 +16,7 @@ export default defineConfig({
     // En desarrollo se usa el mismo esquema de proxy que Nginx en producción (sin CORS)
     proxy: { "/api": { target: process.env.VITE_PROXY_TARGET ?? "http://localhost:8000", changeOrigin: true } },
   },
+  worker: { format: "es" },
   build: {
     chunkSizeWarningLimit: 1200,
     rollupOptions: {

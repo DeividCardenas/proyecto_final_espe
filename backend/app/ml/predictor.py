@@ -61,6 +61,11 @@ class RiskPredictor:
             else:
                 self.pipeline, self.meta = artifact, {}
             self.meta["load_ms"] = round((time.perf_counter() - t0) * 1000, 1)
+            # En la API cada petición es pequeña: 1 hilo por inferencia evita la
+            # sobresuscripción de CPU (16 hilos OpenMP x N peticiones concurrentes)
+            model = self.pipeline.named_steps.get("model") if hasattr(self.pipeline, "named_steps") else None
+            if model is not None and hasattr(model, "set_params"):
+                model.set_params(n_jobs=1)
             logger.info("Modelo %s cargado en %.1f ms", self.meta.get("algorithm"), self.meta["load_ms"])
             return True
         except Exception as exc:  # artefacto corrupto o incompatible

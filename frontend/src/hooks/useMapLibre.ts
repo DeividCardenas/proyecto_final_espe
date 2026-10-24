@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
-import maplibregl, { type Map as MLMap, type MapOptions } from "maplibre-gl";
+import { Map as MLMap, type MapOptions } from "maplibre-gl";
 
 export const BASEMAP_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
@@ -44,7 +44,7 @@ export function useMapLibre(
       return;
     }
     let isMounted = true;
-    const instance = new maplibregl.Map({ container, ...optionsRef.current });
+    const instance = new MLMap({ container, ...optionsRef.current });
 
     const handleLoad = () => {
       if (!isMounted) return;

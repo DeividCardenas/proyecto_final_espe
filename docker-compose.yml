@@ -72,6 +72,8 @@ services:
       dockerfile: Dockerfile
     image: chicago-backend:latest
     container_name: chicago_fastapi
+    # 4 procesos Uvicorn: la inferencia ML es CPU-bound y el GIL limita a un núcleo por proceso
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
     restart: unless-stopped
     depends_on:
       db:
@@ -94,7 +96,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "2.0"
+          cpus: "4.0"
           memory: 2048M
 
   # Contenedor de trabajos por lotes (ETL / ML). No se levanta con `up`:
