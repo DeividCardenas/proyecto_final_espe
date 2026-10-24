@@ -92,3 +92,58 @@ async def model_metrics() -> dict:
         "comparison": {a: v.get("test_argmax") for a, v in report.get("models", {}).items()},
         "artifact": report.get("artifact"),
     }
+
+
+SEGMENT_COLUMNS = ("segment_id, lat, lon, crashes, injury_crashes, severe_crashes, fatalities, ped_crashes, "
+                   "bike_crashes, mean_speed, mean_aadt, p_alto, p_medio, p_bajo, risk_class, priority_rank, priority_pct")
+
+
+def _segments(limit: int, min_class: int) -> list[dict]:
+    return duckdb_engine.query(
+        f"SELECT {SEGMENT_COLUMNS} FROM gold_segment_risk WHERE risk_class >= ? ORDER BY priority_rank LIMIT ?",
+        [min_class, limit])
+
+
+@router.get("/segments", summary="Tramos viales (cuadras) con riesgo anticipado para los próximos 12 meses (GeoJSON)")
+async def risk_segments(
+    limit: int = Query(5_000, ge=1, le=25_000, description="Tramos más prioritarios a devolver"),
+    min_class: int = Query(0, ge=0, le=2, description="Clase mínima: 0 Bajo, 1 Medio, 2 Alto"),
+) -> dict:
+    try:
+        rows = await run_in_threadpool(_segments, limit, min_class)
+    except FileNotFoundError:
+        raise HTTPException(status_code=503, detail="Capa Gold (DuckDB) no disponible")
+    except Exception:
+        raise HTTPException(status_code=404, detail="Aún no se ha entrenado el modelo por tramo")
+    return {
+        "type": "FeatureCollection",
+        "features": [
+            {"type": "Feature", "id": r["segment_id"],
+             "geometry": {"type": "Point", "coordinates": [round(r["lon"], 6), round(r["lat"], 6)]},
+             "properties": {k: (round(v, 4) if isinstance(v, float) else v) for k, v in r.items()
+                            if k not in ("lat", "lon")}}
+            for r in rows if r["lat"] is not None
+        ],
+    }
+
+
+@router.get("/segment-model-metrics", summary="Métricas del modelo de riesgo por tramo vial")
+async def segment_model_metrics() -> dict:
+    path = Path(settings.MODEL_PATH).with_name("segment_model_report.json")
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Aún no se ha entrenado el modelo por tramo")
+    r = json.loads(path.read_text(encoding="utf-8"))
+    return {
+        "winner": r["winner"],
+        "selection_metric": r.get("selection_metric"),
+        "unit": r["unit"],
+        "windows": r["windows"],
+        "n_train": r["n_train"],
+        "n_test": r["n_test"],
+        "class_distribution_test": r["class_distribution_test"],
+        "comparison": {k: {**v["temporal_test"], "spatial_cv_auc": v["spatial_cv"]["auc_mean"],
+                           "spatial_cv_variation": v["spatial_cv"]["auc_cv_variation"]}
+                       for k, v in r["models"].items()},
+        "confusion_matrix": r["models"][r["winner"]]["confusion_matrix"],
+        "forecast": r["forecast"],
+    }

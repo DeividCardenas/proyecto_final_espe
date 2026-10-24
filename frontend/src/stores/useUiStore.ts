@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type PanelTab = "analytics" | "simulator" | "model";
+export type PanelTab = "analytics" | "segments" | "simulator" | "model";
 
 interface UiState {
   activeTab: PanelTab;
@@ -11,6 +11,8 @@ interface UiState {
   flyOnSelect: boolean;
   simulatorPoint: [number, number] | null;
   pickingPoint: boolean;
+  focusPoint: [number, number] | null;
+  focus: (p: [number, number]) => void;
   setTab: (t: PanelTab) => void;
   togglePanel: () => void;
   toggleDrawer: () => void;
@@ -28,6 +30,8 @@ export const useUiStore = create<UiState>((set) => ({
   flyOnSelect: false,
   simulatorPoint: null,
   pickingPoint: false,
+  focusPoint: null,
+  focus: (focusPoint) => set({ focusPoint: [...focusPoint] as [number, number] }),
   setTab: (activeTab) => set({ activeTab, panelOpen: true }),
   togglePanel: () => set((s) => ({ panelOpen: !s.panelOpen })),
   toggleDrawer: () => set((s) => ({ drawerOpen: !s.drawerOpen })),

@@ -6,13 +6,14 @@ import { useFilterStore } from "@/stores/useFilterStore";
 import { useMapStore, type LayerId } from "@/stores/useMapStore";
 import { cn, SEVERITY_LABELS } from "@/components/ui";
 import type { Severity } from "@/types/api";
-import { SEVERITY_COLORS } from "@/components/map/layers/CrashHeatmapLayer";
+import { useTheme } from "@/stores/useThemeStore";
 
 const LAYERS: { id: LayerId; label: string; hint: string }[] = [
   { id: "heatmap", label: "Mapa de calor", hint: "Teselas vectoriales MVT" },
   { id: "points", label: "Siniestros individuales", hint: "Visibles desde zoom 13" },
   { id: "clusters", label: "Clusters dinámicos", hint: "Supercluster en el cliente" },
   { id: "risk", label: "Riesgo predictivo ML", hint: "Rejilla de 500 m" },
+  { id: "segments", label: "Tramos priorizados", hint: "Riesgo anticipado 12 meses por cuadra" },
   { id: "permits", label: "Obras viales CDOT", hint: "Cierre total/parcial + 250 m" },
   { id: "hotspots", label: "Puntos calientes", hint: "DBSCAN en PostGIS" },
   { id: "aadt", label: "Aforos AADT", hint: "Volumen diario (2006)" },
@@ -39,6 +40,7 @@ function Box({ checked, onChange, color, label }: { checked: boolean; onChange: 
 
 export function Sidebar() {
   const f = useFilterStore();
+  const SEVERITY_COLORS = useTheme().severity;
   const { layers, toggleLayer } = useMapStore();
   const today = new Date();
   const presets: { label: string; start: string | null }[] = [
@@ -47,10 +49,10 @@ export function Sidebar() {
     { label: "90 días", start: iso(subDays(today, 90)) },
     { label: "30 días", start: iso(subDays(today, 30)) },
   ];
-  const sectionTitle = "mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500";
+  const sectionTitle = "hud-title mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500";
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col gap-5 overflow-y-auto border-r border-slate-800 bg-slate-950 p-4">
+    <aside className="hud-aside flex w-64 shrink-0 flex-col gap-5 overflow-y-auto border-r border-slate-800 bg-slate-950/85 p-4">
       <section>
         <h2 className={sectionTitle}>Periodo</h2>
         <div className="mb-2 grid grid-cols-4 gap-1">

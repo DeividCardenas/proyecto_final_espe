@@ -68,3 +68,25 @@ def test_predict_rejects_outside_chicago(client):
 def test_predict_rejects_bad_enum(client):
     r = client.post("/api/v1/predict/segment-risk", json={**PAYLOAD, "weather_condition": "TORNADO"})
     assert r.status_code == 422
+
+
+segment_missing = pytest.mark.skipif(
+    not os.path.exists(os.path.join(os.path.dirname(settings.MODEL_PATH), "segment_model_report.json")),
+    reason="modelo por tramo no entrenado")
+
+
+@segment_missing
+def test_segment_model_beats_random_and_validates_out_of_time(client):
+    m = client.get("/api/v1/risk/segment-model-metrics").json()
+    assert set(m["comparison"]) == {"logistic_regression", "random_forest", "xgboost"}
+    best = m["comparison"][m["winner"]]
+    assert best["auc_roc_ovr_macro"] >= 0.70           # validación temporal (año siguiente)
+    assert best["spatial_cv_variation"] < 0.05         # estabilidad entre bloques espaciales
+    assert best["top10_lift"] > 2                      # el 10% priorizado concentra siniestros graves
+
+
+@segment_missing
+def test_segments_geojson_sorted_by_priority(client):
+    fc = client.get("/api/v1/risk/segments", params={"limit": 50, "min_class": 2}).json()
+    ranks = [f["properties"]["priority_rank"] for f in fc["features"]]
+    assert ranks == sorted(ranks) and all(f["properties"]["risk_class"] == 2 for f in fc["features"])

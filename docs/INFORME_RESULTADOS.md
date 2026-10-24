@@ -49,6 +49,46 @@ Variable objetivo con tres clases: 0 Bajo (24,4%), 1 Moderado (74,0%) y 2 Críti
 2. **La meta de precisión de 0,65 en la clase crítica no es alcanzable con estos datos**, porque esa clase es el 1,6% de los casos. Con el umbral que maximiza F1 (0,75), la precisión sube a 0,159 y el recall baja a 0,349. Se recomienda redefinir esa meta como lift sobre la tasa base: 0,074 frente a 0,016 es 4,7 veces mejor que elegir al azar.
 3. **Las variables más importantes son, en orden:** peatón involucrado, ciclista, colisión tipo PEDESTRIAN, motocicleta y luego el resto de tipos de colisión. El horario nocturno es la primera variable ambiental del ranking.
 
+## 3b. Modelo de riesgo por tramo vial (unidad de predicción: cuadra)
+
+Este modelo responde a las observaciones del profesor sobre el OE3 ("clasificar segmentos viales según su nivel de riesgo") y a la pregunta de decisión: cómo usar el modelo para priorizar intervenciones preventivas en los tramos de mayor riesgo.
+
+- **Unidad de predicción.** Cada fila es una cuadra de Chicago: la centena del número más la dirección y la calle, por ejemplo `700 S CICERO AVE`. Hay unas 21.300 cuadras con siniestros por año.
+- **Variables.** Se calculan sobre 12 meses de historia del tramo:
+  - frecuencia y severidad de los siniestros;
+  - peatones y ciclistas involucrados;
+  - proporción nocturna, en intersección, con fuga, con mal clima y en zona de obra;
+  - velocidad media y máxima, AADT, tipo de vía, dispositivo de control y carriles;
+  - densidad de siniestros en la celda de 500 m.
+- **Etiqueta.** Se mide en los 12 meses siguientes. Alto (6,2%) significa al menos un siniestro con fallecidos o lesiones incapacitantes. Medio (30,0%) significa siniestros con lesionados pero ninguno grave. Bajo (63,8%) es el resto.
+- **Validación temporal.** Se entrena con la historia de 2023 y su resultado en 2024, y se evalúa con la historia de 2024 para anticipar 2025. El modelo nunca ve el periodo que predice.
+- **Validación espacial.** Se usa GroupKFold de 5 pliegues por bloques de unos 2 km, de modo que dos cuadras vecinas nunca quedan repartidas entre entrenamiento y validación.
+
+| Modelo (test 2025, 21.416 cuadras) | AUC macro | AUC CV espacial (variación) | Recall Alto | Precisión Alto | Top 10% capta siniestros graves | Lift |
+|---|---|---|---|---|---|---|
+| **Regresión logística (línea base, elegida)** | 0,796 | 0,794 (0,4%) | **0,62** | 0,19 | **41,5%** | **4,2×** |
+| Random Forest | **0,800** | 0,799 (0,2%) | 0,34 | 0,24 | 40,1% | 4,0× |
+| XGBoost | 0,794 | 0,795 (0,4%) | 0,48 | 0,20 | 38,1% | 3,8× |
+
+### Hallazgos
+
+1. **Predecir tramos funciona mejor que predecir siniestros individuales.** El AUC es 0,80 frente a 0,71, y además se mide un año hacia adelante. El riesgo de una cuadra es persistente: su historial reciente anticipa bien el año siguiente.
+2. **La línea base es igual de buena que los modelos de ensamble.** Los tres modelos quedan dentro de 0,006 de AUC. Se eligió la regresión logística con el criterio que corresponde a la pregunta de decisión: la mayor captura de siniestros graves en el 10% de tramos priorizados. Además tiene el mejor recall de la clase Alto y es interpretable.
+3. **La priorización tiene un efecto cuantificable.** Si se interviene el 10% de cuadras con mayor probabilidad de riesgo Alto (unas 2.100), se cubre el 41,5% de los siniestros graves del año siguiente. Eso es 4,2 veces lo que se cubriría eligiendo cuadras al azar.
+4. **Pronóstico vigente.** Con los 12 meses que terminan el 23 de octubre de 2026 se puntuaron 21.214 cuadras, y 3.988 quedan clasificadas como riesgo Alto. Las primeras de la lista:
+
+   | Prioridad | Cuadra |
+   |---|---|
+   | 1 | 10000 W O'Hare St (accesos al aeropuerto) |
+   | 2 | 700 S Cicero Ave |
+   | 3 | 4500 W Lake St |
+   | 4 | 0 W Ida B Wells Dr |
+   | 5 | 0 W 87th St |
+   | 6 | 7900 S Stony Island Ave |
+   | 7 | 600 N Michigan Ave |
+
+   La lista completa está en la pestaña **Tramos** de la aplicación, en `GET /api/v1/risk/segments` y en `data/processed/gold_segment_risk.parquet`.
+
 ## 4. Hallazgos para la ingeniería vial (Vision Zero)
 
 * **Usuarios vulnerables.** El 14,4% de los atropellos a peatones y el 8,0% de los siniestros con ciclistas terminan en lesión grave o muerte. La media general es 1,6%, así que el riesgo es 9 y 5 veces mayor.

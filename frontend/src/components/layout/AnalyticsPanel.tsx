@@ -8,10 +8,12 @@ import { MonthlyTrend } from "@/components/analytics/MonthlyTrend";
 import { TopCauses } from "@/components/analytics/TopCauses";
 import { ModelMetricsPanel } from "@/components/analytics/ModelMetricsPanel";
 import { RiskSimulator } from "@/components/simulator/RiskSimulator";
+import { SegmentPriorityPanel } from "@/components/analytics/SegmentPriorityPanel";
 import { cn } from "@/components/ui";
 
 const TABS: { id: PanelTab; label: string }[] = [
   { id: "analytics", label: "Analítica" },
+  { id: "segments", label: "Tramos" },
   { id: "simulator", label: "Simulador" },
   { id: "model", label: "Modelo" },
 ];
@@ -21,7 +23,7 @@ export function AnalyticsPanel() {
   if (!panelOpen) return null;
   return (
     <Tabs.Root value={activeTab} onValueChange={(v) => setTab(v as PanelTab)}
-      className="flex w-[360px] shrink-0 flex-col border-l border-slate-800 bg-slate-950">
+      className="hud-aside flex w-[360px] shrink-0 flex-col border-l border-slate-800 bg-slate-950/85">
       <Tabs.List className="flex border-b border-slate-800 px-2" aria-label="Paneles">
         {TABS.map((t) => (
           <Tabs.Trigger key={t.id} value={t.id}
@@ -43,6 +45,7 @@ export function AnalyticsPanel() {
             <TopCauses />
           </div>
         )}
+        {activeTab === "segments" && <SegmentPriorityPanel />}
         {activeTab === "simulator" && <RiskSimulator />}
         {activeTab === "model" && <ModelMetricsPanel />}
       </div>

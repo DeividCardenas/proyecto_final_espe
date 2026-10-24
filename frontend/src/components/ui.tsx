@@ -15,7 +15,7 @@ export function severityClass(s: Severity) {
 
 export function Card({ title, children, className, right }: { title?: string; children: ReactNode; className?: string; right?: ReactNode }) {
   return (
-    <section className={cn("rounded-xl border border-slate-800 bg-slate-900/80 p-3", className)}>
+    <section className={cn("hud-panel rounded-xl border border-slate-800 bg-slate-900/80 p-3", className)}>
       {title && (
         <header className="mb-2 flex items-center justify-between">
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{title}</h3>
