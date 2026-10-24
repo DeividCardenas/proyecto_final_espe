@@ -1,0 +1,402 @@
+{
+  "trained_at": "2026-10-24T01:05:18.657275+00:00",
+  "unit": "cuadra (centena de n\u00famero + direcci\u00f3n + calle)",
+  "windows": {
+    "train": "historia 2023 -> riesgo 2024",
+    "test": "historia 2024 -> riesgo 2025"
+  },
+  "n_train": 21351,
+  "n_test": 21416,
+  "class_distribution_train": {
+    "Bajo": 0.6350053861645825,
+    "Medio": 0.29740995737904546,
+    "Alto": 0.06758465645637207
+  },
+  "class_distribution_test": {
+    "Bajo": 0.6383545013074337,
+    "Medio": 0.2998225625700411,
+    "Alto": 0.061822936122525214
+  },
+  "models": {
+    "logistic_regression": {
+      "spatial_cv": {
+        "auc_folds": [
+          0.7880032133955494,
+          0.7961606608744883,
+          0.7940508828917587,
+          0.7978253732173529,
+          0.7927166250891385
+        ],
+        "auc_mean": 0.7937513510936576,
+        "auc_std": 0.0033646365058734185,
+        "auc_cv_variation": 0.004238904918067236
+      },
+      "temporal_test": {
+        "auc_roc_ovr_macro": 0.7959561031320934,
+        "auc_roc_high_vs_rest": 0.7986228229299301,
+        "recall_high": 0.6200906344410876,
+        "precision_high": 0.19031061659712564,
+        "base_rate_high": 0.061822936122525214,
+        "top10_precision_high": 0.2400747314339094,
+        "top10_capture_severe": 0.4149797570850202,
+        "top10_lift": 4.149797570850202
+      },
+      "confusion_matrix": [
+        [
+          11050,
+          1923,
+          698
+        ],
+        [
+          1864,
+          1762,
+          2795
+        ],
+        [
+          239,
+          264,
+          821
+        ]
+      ],
+      "feature_importance": [
+        {
+          "feature": "crashes_log",
+          "importance": 0.6553675748894904
+        },
+        {
+          "feature": "trafficway_type_OTHER",
+          "importance": 0.26231577704655257
+        },
+        {
+          "feature": "trafficway_type_UNKNOWN",
+          "importance": 0.259389962384223
+        },
+        {
+          "feature": "trafficway_type_DIVIDED - W/MEDIAN (NOT RAISED)",
+          "importance": 0.2122199834846826
+        },
+        {
+          "feature": "trafficway_type_DIVIDED - W/MEDIAN BARRIER",
+          "importance": 0.20555650457829389
+        },
+        {
+          "feature": "traffic_control_device_OTHER",
+          "importance": 0.18644141203783302
+        },
+        {
+          "feature": "trafficway_type_T-INTERSECTION",
+          "importance": 0.180088221218909
+        },
+        {
+          "feature": "trafficway_type_DRIVEWAY",
+          "importance": 0.1637342019969448
+        },
+        {
+          "feature": "traffic_control_device_TRAFFIC SIGNAL",
+          "importance": 0.15210612480509114
+        },
+        {
+          "feature": "trafficway_type_ALLEY",
+          "importance": 0.15038168421831966
+        },
+        {
+          "feature": "traffic_control_device_STOP SIGN/FLASHER",
+          "importance": 0.14748876623714194
+        },
+        {
+          "feature": "trafficway_type_ONE-WAY",
+          "importance": 0.13275131131691903
+        },
+        {
+          "feature": "traffic_control_device_UNKNOWN",
+          "importance": 0.12653913183091828
+        },
+        {
+          "feature": "mean_speed",
+          "importance": 0.12208387428362522
+        },
+        {
+          "feature": "traffic_control_device_NO CONTROLS",
+          "importance": 0.12084776061666076
+        }
+      ]
+    },
+    "random_forest": {
+      "spatial_cv": {
+        "auc_folds": [
+          0.7973485637989262,
+          0.8005805514692245,
+          0.7974946836747648,
+          0.8002003719629464,
+          0.7990304709263194
+        ],
+        "auc_mean": 0.7989309283664363,
+        "auc_std": 0.001334865430376181,
+        "auc_cv_variation": 0.0016708145635387567
+      },
+      "temporal_test": {
+        "auc_roc_ovr_macro": 0.7999811062694189,
+        "auc_roc_high_vs_rest": 0.7961083321855418,
+        "recall_high": 0.33534743202416917,
+        "precision_high": 0.23554376657824933,
+        "base_rate_high": 0.061822936122525214,
+        "top10_precision_high": 0.23353573096683794,
+        "top10_capture_severe": 0.4008097165991903,
+        "top10_lift": 4.008097165991902
+      },
+      "confusion_matrix": [
+        [
+          11481,
+          2026,
+          164
+        ],
+        [
+          2074,
+          3070,
+          1277
+        ],
+        [
+          263,
+          617,
+          444
+        ]
+      ],
+      "feature_importance": [
+        {
+          "feature": "crashes_log",
+          "importance": 0.22652871845166064
+        },
+        {
+          "feature": "intersection_share",
+          "importance": 0.09031393276046557
+        },
+        {
+          "feature": "injury_rate",
+          "importance": 0.08631698079301452
+        },
+        {
+          "feature": "bad_weather_share",
+          "importance": 0.06646004266311605
+        },
+        {
+          "feature": "lon",
+          "importance": 0.057798730226047736
+        },
+        {
+          "feature": "lat",
+          "importance": 0.05601984008228229
+        },
+        {
+          "feature": "cell_crashes_log",
+          "importance": 0.05484322878748386
+        },
+        {
+          "feature": "hit_and_run_share",
+          "importance": 0.05372055051456797
+        },
+        {
+          "feature": "night_share",
+          "importance": 0.05075610662521858
+        },
+        {
+          "feature": "aadt_log",
+          "importance": 0.04969262089934513
+        },
+        {
+          "feature": "mean_speed",
+          "importance": 0.04557608524329159
+        },
+        {
+          "feature": "max_speed",
+          "importance": 0.04029608350064288
+        },
+        {
+          "feature": "workzone_share",
+          "importance": 0.030539728866331963
+        },
+        {
+          "feature": "traffic_control_device_TRAFFIC SIGNAL",
+          "importance": 0.01702150014681876
+        },
+        {
+          "feature": "trafficway_type_ONE-WAY",
+          "importance": 0.013719160156169825
+        }
+      ]
+    },
+    "xgboost": {
+      "spatial_cv": {
+        "auc_folds": [
+          0.7903948337416745,
+          0.7972552619885104,
+          0.791983514446664,
+          0.7982354814456406,
+          0.7970687139798177
+        ],
+        "auc_mean": 0.7949875611204614,
+        "auc_std": 0.0031667046620700466,
+        "auc_cv_variation": 0.003983338629357759
+      },
+      "temporal_test": {
+        "auc_roc_ovr_macro": 0.7935587762909502,
+        "auc_roc_high_vs_rest": 0.7906966323491997,
+        "recall_high": 0.4773413897280967,
+        "precision_high": 0.19737663960024984,
+        "base_rate_high": 0.061822936122525214,
+        "top10_precision_high": 0.22326015880429706,
+        "top10_capture_severe": 0.3805668016194332,
+        "top10_lift": 3.8056680161943315
+      },
+      "confusion_matrix": [
+        [
+          11259,
+          1924,
+          488
+        ],
+        [
+          1936,
+          2403,
+          2082
+        ],
+        [
+          242,
+          450,
+          632
+        ]
+      ],
+      "feature_importance": [
+        {
+          "feature": "crashes_log",
+          "importance": 0.22120966017246246
+        },
+        {
+          "feature": "injury_rate",
+          "importance": 0.06409560889005661
+        },
+        {
+          "feature": "intersection_share",
+          "importance": 0.04244905710220337
+        },
+        {
+          "feature": "traffic_control_device_TRAFFIC SIGNAL",
+          "importance": 0.04014713689684868
+        },
+        {
+          "feature": "trafficway_type_ONE-WAY",
+          "importance": 0.034631580114364624
+        },
+        {
+          "feature": "bad_weather_share",
+          "importance": 0.028920980170369148
+        },
+        {
+          "feature": "trafficway_type_FOUR WAY",
+          "importance": 0.027567200362682343
+        },
+        {
+          "feature": "max_speed",
+          "importance": 0.027374813333153725
+        },
+        {
+          "feature": "mean_speed",
+          "importance": 0.02551312930881977
+        },
+        {
+          "feature": "trafficway_type_DIVIDED - W/MEDIAN (NOT RAISED)",
+          "importance": 0.02508457936346531
+        },
+        {
+          "feature": "traffic_control_device_STOP SIGN/FLASHER",
+          "importance": 0.024994444102048874
+        },
+        {
+          "feature": "lon",
+          "importance": 0.023551559075713158
+        },
+        {
+          "feature": "trafficway_type_ALLEY",
+          "importance": 0.021772295236587524
+        },
+        {
+          "feature": "hit_and_run_share",
+          "importance": 0.021379707381129265
+        },
+        {
+          "feature": "aadt_log",
+          "importance": 0.021092601120471954
+        }
+      ]
+    }
+  },
+  "selection_metric": "top10_capture_severe",
+  "winner": "logistic_regression",
+  "baseline_gain_auc": 0.0,
+  "forecast": {
+    "history_window": "2025-10-24 -> 2026-10-24",
+    "segments_scored": 21214,
+    "high_risk_segments": 3988,
+    "top10": [
+      {
+        "segment_id": "10000 W OHARE ST",
+        "p_alto": 0.921,
+        "severe_crashes": 3.0,
+        "crashes": 245.0
+      },
+      {
+        "segment_id": "700 S CICERO AVE",
+        "p_alto": 0.864,
+        "severe_crashes": 3.0,
+        "crashes": 83.0
+      },
+      {
+        "segment_id": "4500 W LAKE ST",
+        "p_alto": 0.855,
+        "severe_crashes": 4.0,
+        "crashes": 33.0
+      },
+      {
+        "segment_id": "0 W IDA B WELLS DR",
+        "p_alto": 0.848,
+        "severe_crashes": 3.0,
+        "crashes": 50.0
+      },
+      {
+        "segment_id": "0 W 87TH ST",
+        "p_alto": 0.833,
+        "severe_crashes": 1.0,
+        "crashes": 73.0
+      },
+      {
+        "segment_id": "7900 S STONY ISLAND AVE",
+        "p_alto": 0.827,
+        "severe_crashes": 2.0,
+        "crashes": 86.0
+      },
+      {
+        "segment_id": "600 N MICHIGAN AVE",
+        "p_alto": 0.819,
+        "severe_crashes": 3.0,
+        "crashes": 78.0
+      },
+      {
+        "segment_id": "7500 S STONY ISLAND AVE",
+        "p_alto": 0.816,
+        "severe_crashes": 2.0,
+        "crashes": 53.0
+      },
+      {
+        "segment_id": "9500 S HALSTED ST",
+        "p_alto": 0.816,
+        "severe_crashes": 1.0,
+        "crashes": 72.0
+      },
+      {
+        "segment_id": "200 W 87TH ST",
+        "p_alto": 0.804,
+        "severe_crashes": 2.0,
+        "crashes": 44.0
+      }
+    ]
+  },
+  "elapsed_s": 27.7
+}

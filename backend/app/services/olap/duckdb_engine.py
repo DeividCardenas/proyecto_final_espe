@@ -110,11 +110,12 @@ def export_gold(path: str | None = None) -> dict:
         settings.processed_dir.mkdir(parents=True, exist_ok=True)
         out = (settings.processed_dir / "gold_crash_facts.parquet").as_posix()
         con.execute(f"COPY gold_crash_facts TO '{out}' (FORMAT PARQUET, COMPRESSION ZSTD)")
-        # Conserva la rejilla de riesgo ML del último entrenamiento (Fase 3)
-        ml_grid = settings.processed_dir / "gold_grid_ml.parquet"
-        if ml_grid.exists():
-            con.execute(f"CREATE TABLE gold_grid_ml AS SELECT * FROM read_parquet('{ml_grid.as_posix()}')")
-            stats["gold_grid_ml"] = con.execute("SELECT count(*) FROM gold_grid_ml").fetchone()[0]
+        # Conserva las salidas de los modelos del último entrenamiento (Fase 3)
+        for table in ("gold_grid_ml", "gold_segment_risk"):
+            src = settings.processed_dir / f"{table}.parquet"
+            if src.exists():
+                con.execute(f"CREATE TABLE {table} AS SELECT * FROM read_parquet('{src.as_posix()}')")
+                stats[table] = con.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
     # Reemplazo atómico: los lectores nunca ven un archivo a medio escribir
     os.replace(tmp, path)
     stats["elapsed_s"] = round(time.perf_counter() - t0, 1)
@@ -128,6 +129,14 @@ def attach_ml_grid(grid: pd.DataFrame, path: str | None = None) -> None:
     with duckdb.connect(path) as con:
         con.register("grid_df", grid)
         con.execute("CREATE OR REPLACE TABLE gold_grid_ml AS SELECT * FROM grid_df")
+
+
+def attach_table(name: str, df: pd.DataFrame, path: str | None = None) -> None:
+    """Crea o reemplaza una tabla Gold a partir de un DataFrame."""
+    path = path or settings.DUCKDB_PATH
+    with duckdb.connect(path) as con:
+        con.register("tmp_df", df)
+        con.execute(f"CREATE OR REPLACE TABLE {name} AS SELECT * FROM tmp_df")
 
 
 def query(sql: str, params: list | None = None) -> list[dict]:

@@ -8,10 +8,12 @@ import { MonthlyTrend } from "@/components/analytics/MonthlyTrend";
 import { TopCauses } from "@/components/analytics/TopCauses";
 import { ModelMetricsPanel } from "@/components/analytics/ModelMetricsPanel";
 import { RiskSimulator } from "@/components/simulator/RiskSimulator";
+import { SegmentPriorityPanel } from "@/components/analytics/SegmentPriorityPanel";
 import { cn } from "@/components/ui";
 
 const TABS: { id: PanelTab; label: string }[] = [
   { id: "analytics", label: "Analítica" },
+  { id: "segments", label: "Tramos" },
   { id: "simulator", label: "Simulador" },
   { id: "model", label: "Modelo" },
 ];
@@ -43,6 +45,7 @@ export function AnalyticsPanel() {
             <TopCauses />
           </div>
         )}
+        {activeTab === "segments" && <SegmentPriorityPanel />}
         {activeTab === "simulator" && <RiskSimulator />}
         {activeTab === "model" && <ModelMetricsPanel />}
       </div>

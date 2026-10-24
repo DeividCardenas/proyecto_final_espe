@@ -13,6 +13,7 @@ const LAYERS: { id: LayerId; label: string; hint: string }[] = [
   { id: "points", label: "Siniestros individuales", hint: "Visibles desde zoom 13" },
   { id: "clusters", label: "Clusters dinámicos", hint: "Supercluster en el cliente" },
   { id: "risk", label: "Riesgo predictivo ML", hint: "Rejilla de 500 m" },
+  { id: "segments", label: "Tramos priorizados", hint: "Riesgo anticipado 12 meses por cuadra" },
   { id: "permits", label: "Obras viales CDOT", hint: "Cierre total/parcial + 250 m" },
   { id: "hotspots", label: "Puntos calientes", hint: "DBSCAN en PostGIS" },
   { id: "aadt", label: "Aforos AADT", hint: "Volumen diario (2006)" },

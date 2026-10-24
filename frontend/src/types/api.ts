@@ -117,3 +117,34 @@ export interface ModelMetrics {
   comparison: Record<string, Record<string, number>>;
   artifact: { size_mb: number; load_ms: number; single_inference_ms: number };
 }
+
+export interface SegmentProps {
+  segment_id: string;
+  crashes: number;
+  injury_crashes: number;
+  severe_crashes: number;
+  fatalities: number;
+  ped_crashes: number;
+  bike_crashes: number;
+  mean_speed: number | null;
+  mean_aadt: number | null;
+  p_alto: number;
+  p_medio: number;
+  p_bajo: number;
+  risk_class: Severity;
+  priority_rank: number;
+  priority_pct: number;
+}
+
+export interface SegmentModelMetrics {
+  winner: string;
+  selection_metric: string;
+  unit: string;
+  windows: { train: string; test: string };
+  n_train: number;
+  n_test: number;
+  class_distribution_test: Record<string, number>;
+  comparison: Record<string, Record<string, number>>;
+  confusion_matrix: number[][];
+  forecast: { history_window: string; segments_scored: number; high_risk_segments: number };
+}

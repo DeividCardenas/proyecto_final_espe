@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Activity, BarChart3, Brain, Gauge, Table2 } from "lucide-react";
+import { Activity, BarChart3, Brain, Gauge, ListOrdered, Table2 } from "lucide-react";
 import { api } from "@/services/api";
 import { useUiStore, type PanelTab } from "@/stores/useUiStore";
 import { cn } from "@/components/ui";
@@ -11,6 +11,7 @@ interface Health {
 
 const TABS: { id: PanelTab; label: string; icon: typeof BarChart3 }[] = [
   { id: "analytics", label: "Analítica", icon: BarChart3 },
+  { id: "segments", label: "Tramos", icon: ListOrdered },
   { id: "simulator", label: "Simulador", icon: Gauge },
   { id: "model", label: "Modelo", icon: Brain },
 ];

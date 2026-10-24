@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type LayerId = "heatmap" | "points" | "clusters" | "risk" | "permits" | "hotspots" | "aadt";
+export type LayerId = "heatmap" | "points" | "clusters" | "risk" | "segments" | "permits" | "hotspots" | "aadt";
 
 export type Bounds = [number, number, number, number]; // minLon, minLat, maxLon, maxLat
 
@@ -24,7 +24,7 @@ export const useMapStore = create<MapState>((set) => ({
   center: CHICAGO_CENTER,
   zoom: 10.5,
   bounds: null,
-  layers: { heatmap: true, points: true, clusters: false, risk: false, permits: false, hotspots: false, aadt: false },
+  layers: { heatmap: true, points: true, clusters: false, risk: false, segments: false, permits: false, hotspots: false, aadt: false },
   setViewport: (center, zoom, bounds) => set({ center, zoom, bounds }),
   toggleLayer: (id) => set((s) => ({ layers: { ...s.layers, [id]: !s.layers[id] } })),
 }));

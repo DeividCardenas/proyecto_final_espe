@@ -3,7 +3,7 @@ import { api, absoluteApiUrl } from "./api";
 import type { Bounds } from "@/stores/useMapStore";
 import type {
   AadtRow, CauseRow, CrashCollection, CrashDetail, HotspotProps, HourlyRow, Kpis, ModelMetrics, MonthlyRow,
-  PermitProps, RiskGrid, Severity, WeatherRow,
+  PermitProps, RiskGrid, SegmentModelMetrics, SegmentProps, Severity, WeatherRow,
 } from "@/types/api";
 
 export interface QueryFilters {
@@ -45,6 +45,9 @@ export const crashService = {
       .then((r) => r.data),
   aadt: () => api.get<FeatureCollection<Point, { volume: number; street: string }>>("/traffic/stations").then((r) => r.data),
   riskGrid: () => api.get<RiskGrid>("/risk/grid").then((r) => r.data),
+  segments: (limit = 5000) =>
+    api.get<FeatureCollection<Point, SegmentProps>>("/risk/segments", { params: { limit } }).then((r) => r.data),
+  segmentMetrics: () => api.get<SegmentModelMetrics>("/risk/segment-model-metrics").then((r) => r.data),
   modelMetrics: () => api.get<ModelMetrics>("/risk/model-metrics").then((r) => r.data),
   kpis: (f: QueryFilters) => api.get<Kpis>("/analytics/kpis", { params: toParams(f) }).then((r) => r.data),
   hourly: (f: QueryFilters) =>

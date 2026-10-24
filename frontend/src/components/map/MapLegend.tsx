@@ -31,6 +31,13 @@ export function MapLegend() {
           <div className="flex justify-between text-slate-500"><span>bajo</span><span>p80</span><span>p95+</span></div>
         </div>
       )}
+      {layers.segments && (
+        <div>
+          <p className="mb-1 font-semibold text-slate-200">Tramo: P(riesgo Alto) próximos 12 meses</p>
+          <div className="h-2 rounded bg-gradient-to-r from-green-600 via-yellow-400 to-red-700" />
+          <p className="text-slate-500">Círculos grandes = top 1% y top 10% prioritarios</p>
+        </div>
+      )}
       {layers.permits && <p><span className="mr-1 inline-block h-2.5 w-4 border border-dashed border-orange-400 bg-orange-500/30 align-middle" />Obra CDOT con cierre + buffer 250 m</p>}
       {layers.hotspots && <p><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-red-500/70 align-middle" />Punto caliente DBSCAN (40 m)</p>}
       {layers.aadt && <p><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-cyan-400/60 align-middle" />Aforo vehicular AADT (2006)</p>}
