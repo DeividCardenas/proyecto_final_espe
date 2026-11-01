@@ -76,15 +76,15 @@ export function SegmentExplainCard({ segment }: { segment: SelectedSegment }) {
         <div className="h-16" />
       )}
 
-      <p className="mt-2 text-[10px] uppercase tracking-wide text-slate-500">Qué explica la predicción</p>
+      <p className="mt-2 text-[10px] uppercase tracking-wide text-slate-500">Qué explica la predicción (Alto frente a Bajo)</p>
       {explain.isLoading && <p className="text-xs text-slate-500">Calculando…</p>}
       {explain.isError && <p className="text-xs text-slate-400">No se pudo explicar esta cuadra.</p>}
       {e && (
         <>
           <DivergingBars
-            ariaLabel="Aporte de cada variable a la probabilidad de riesgo Alto"
-            leftLabel="reduce el riesgo"
-            rightLabel="aumenta el riesgo"
+            ariaLabel="Aporte de cada variable al log-odds de riesgo Alto frente a Bajo"
+            leftLabel="favorece Bajo"
+            rightLabel="favorece Alto"
             data={factors.map((f) => ({ label: f.label, value: f.contribution, detail: describe(f) }))}
           />
           <p className="text-[10px] text-slate-500">

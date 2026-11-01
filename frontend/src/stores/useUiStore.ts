@@ -41,13 +41,21 @@ export const useUiStore = create<UiState>((set) => ({
   focusPoint: null,
   selectedSegment: null,
   selectSegment: (selectedSegment) =>
-    set(selectedSegment ? { selectedSegment, activeTab: "segments", panelOpen: true } : { selectedSegment }),
+    // Una sola selección activa a la vez: el resaltado y el vuelo del mapa siguen a la última
+    set(selectedSegment
+      ? { selectedSegment, selectedCrashId: null, selectedCoords: null, flyOnSelect: false, activeTab: "segments", panelOpen: true }
+      : { selectedSegment }),
   focus: (focusPoint) => set({ focusPoint: [...focusPoint] as [number, number] }),
   setTab: (activeTab) => set({ activeTab, panelOpen: true }),
   togglePanel: () => set((s) => ({ panelOpen: !s.panelOpen })),
   toggleDrawer: () => set((s) => ({ drawerOpen: !s.drawerOpen })),
   selectCrash: (selectedCrashId, coords = null, fly = false) =>
-    set({ selectedCrashId, selectedCoords: selectedCrashId ? coords : null, flyOnSelect: fly }),
-  setSimulatorPoint: (simulatorPoint) => set({ simulatorPoint, pickingPoint: false }),
+    set(selectedCrashId
+      ? { selectedCrashId, selectedCoords: coords, flyOnSelect: fly, selectedSegment: null }
+      : { selectedCrashId, selectedCoords: null, flyOnSelect: fly }),
+  setSimulatorPoint: (simulatorPoint) =>
+    set(simulatorPoint
+      ? { simulatorPoint, pickingPoint: false, selectedSegment: null, selectedCrashId: null, selectedCoords: null }
+      : { simulatorPoint, pickingPoint: false }),
   setPickingPoint: (pickingPoint) => set({ pickingPoint }),
 }));

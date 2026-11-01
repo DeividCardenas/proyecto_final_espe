@@ -4,7 +4,8 @@ import { useKpis } from "@/hooks/useKpis";
 import { Card, fmtNumber, fmtPct } from "@/components/ui";
 import { RankChart } from "@/components/charts/d3";
 
-const UNDETERMINED = new Set(["UNABLE TO DETERMINE", "NOT APPLICABLE"]);
+// "UNKNOWN" es el valor con el que la API marca una causa ausente
+const UNDETERMINED = new Set(["UNABLE TO DETERMINE", "NOT APPLICABLE", "UNKNOWN"]);
 
 /** Ranking de causas contributivas (barras desde cero; la tasa crítica va como nota). */
 export function TopCauses() {

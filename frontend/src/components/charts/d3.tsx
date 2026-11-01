@@ -11,7 +11,7 @@
  * - Las barras empiezan siempre en cero (no se exageran diferencias pequeñas).
  * - Cada gráfico admite una línea de referencia para dar comparación.
  */
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { scaleBand, scaleLinear, scaleTime } from "d3-scale";
 import { extent, max, min } from "d3-array";
 import { line } from "d3-shape";
@@ -64,7 +64,7 @@ export function ColumnChart({
     .range([height - m.bottom, m.top]);
   return (
     <div ref={ref}>
-      <svg width={width} height={height} role="img" aria-label={ariaLabel}>
+      <svg width={width} height={height} role={onSelect ? "group" : "img"} aria-label={ariaLabel}>
         {y.ticks(4).map((v) => (
           <g key={v}>
             <line x1={m.left} x2={width - m.right} y1={y(v)} y2={y(v)} stroke={t.chart.grid} />
@@ -73,8 +73,19 @@ export function ColumnChart({
         ))}
         {data.map((d, i) => {
           const hl = d.key === highlight;
+          // Barras seleccionables también con teclado (Tab + Enter/Espacio)
+          const interactive = onSelect
+            ? {
+              role: "button", tabIndex: 0, "aria-label": `${d.label}: ${format(d.value)}`,
+              onClick: () => onSelect(d.key),
+              onKeyDown: (e: KeyboardEvent) => {
+                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(d.key); }
+              },
+              style: { cursor: "pointer" },
+            }
+            : {};
           return (
-            <g key={d.key} onClick={onSelect && (() => onSelect(d.key))} style={{ cursor: onSelect ? "pointer" : undefined }}>
+            <g key={d.key} {...interactive}>
               <rect x={x(String(d.key))} y={y(d.value)} width={x.bandwidth()} height={y(0) - y(d.value)}
                 fill={hl ? t.chart.primary : MUTED} rx={1}>
                 <title>{`${d.label}: ${format(d.value)}`}</title>
@@ -117,7 +128,7 @@ export function LineChart({
   const t = useTheme();
   const { ref, width } = useWidth();
   const m = { top: 14, right: 10, bottom: 18, left: 34 };
-  if (data.length < 2) return <div ref={ref} style={{ height }} />;
+  if (data.length === 0) return <div ref={ref} style={{ height }} />;
   const [d0, d1] = extent(data, (d) => d.date) as [Date, Date];
   const x = scaleTime().domain([d0, d1]).range([m.left, width - m.right]);
   const y = scaleLinear().domain([0, max(data, (d) => d.value) ?? 1]).nice().range([height - m.bottom, m.top]);

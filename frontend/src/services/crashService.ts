@@ -61,7 +61,8 @@ export const crashService = {
   monthly: (f: QueryFilters) =>
     api.get<MonthlyRow[]>("/analytics/monthly-trend", { params: toParams(f) }).then((r) => r.data),
   causes: (f: QueryFilters) =>
-    api.get<CauseRow[]>("/analytics/top-causes", { params: { ...toParams(f), limit: 8 } }).then((r) => r.data),
+    // Límite máximo de la API (cubre todas las causas): el total sin causa determinada debe ser completo
+    api.get<CauseRow[]>("/analytics/top-causes", { params: { ...toParams(f), limit: 40 } }).then((r) => r.data),
   aadtSeverity: (f: QueryFilters) =>
     api.get<AadtRow[]>("/analytics/aadt-severity", { params: toParams(f) }).then((r) => r.data),
   tileUrl: (startDate: string | null, endDate: string | null) => {

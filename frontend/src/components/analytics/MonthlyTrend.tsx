@@ -1,24 +1,42 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useFilterStore } from "@/stores/useFilterStore";
 import { crashService } from "@/services/crashService";
 import { useKpis } from "@/hooks/useKpis";
 import { Card, fmtNumber, fmtPct } from "@/components/ui";
 import { LineChart } from "@/components/charts/d3";
 
-/** Evolución mensual frente a la media del periodo; el mes en curso (incompleto) se excluye. */
+/** "YYYY-MM" como fecha local (new Date() lo leería en UTC y en Chicago caería en el mes anterior). */
+const monthDate = (s: string) => {
+  const [y, m] = s.split("-").map(Number);
+  return new Date(y, m - 1, 1);
+};
+/** "YYYY-MM-DD..." como fecha local, por el mismo motivo. */
+const dayDate = (s: string) => {
+  const [y, m, d] = s.slice(0, 10).split("-").map(Number);
+  return new Date(y, m - 1, d);
+};
+const daysInMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+
+/** Evolución mensual frente a la media del periodo; el último mes se excluye si los datos no lo cubren entero. */
 export function MonthlyTrend() {
-  const { filters: f, scope, local } = useKpis();
+  const { filters: f, scope, city } = useKpis();
+  const endDate = useFilterStore((s) => s.endDate);
   const { data = [] } = useQuery({
     queryKey: ["monthly", f],
     queryFn: () => crashService.monthly(f),
     enabled: !!f.bounds,
     placeholderData: keepPreviousData,
   });
-  const lastDate = local.data?.last_date ? new Date(local.data.last_date) : null;
-  const series = data.map((d) => ({ date: new Date(d.month), value: d.crashes }));
-  // Un mes cuyo último dato no llega al día 28 está incompleto y sesgaría la comparación
-  const partial = !!lastDate && lastDate.getDate() < 28 && series.length > 0
-    && series[series.length - 1].date.getMonth() === lastDate.getMonth()
-    && series[series.length - 1].date.getFullYear() === lastDate.getFullYear();
+  const series = data.map((d) => ({ date: monthDate(d.month), value: d.crashes }));
+  // Corte de cobertura: último dato de toda la ciudad (no el de la ventana visible)
+  // o la fecha final del filtro, lo que llegue antes
+  const cityLast = city.data?.last_date ? dayDate(city.data.last_date) : null;
+  const filterEnd = endDate ? dayDate(endDate) : null;
+  const cutoff = cityLast && filterEnd ? (filterEnd < cityLast ? filterEnd : cityLast) : cityLast ?? filterEnd;
+  const lastBucket = series[series.length - 1];
+  const partial = !!cutoff && !!lastBucket
+    && lastBucket.date.getFullYear() === cutoff.getFullYear() && lastBucket.date.getMonth() === cutoff.getMonth()
+    && cutoff.getDate() < daysInMonth(cutoff);
   const full = partial ? series.slice(0, -1) : series;
   const mean = full.length ? full.reduce((a, d) => a + d.value, 0) / full.length : 0;
   const last = full[full.length - 1];
