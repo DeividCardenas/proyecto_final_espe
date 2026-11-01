@@ -1,6 +1,7 @@
 import { useMapStore } from "@/stores/useMapStore";
 import { useTheme } from "@/stores/useThemeStore";
 import { RISK_COLORS } from "./layers/RiskChoroplethLayer";
+import { SEGMENT_STOPS } from "./layers/SegmentRiskLayer";
 
 export function MapLegend() {
   const theme = useTheme();
@@ -36,8 +37,9 @@ export function MapLegend() {
       {layers.segments && (
         <div>
           <p className="mb-1 font-semibold text-slate-200">Tramo: P(riesgo Alto) próximos 12 meses</p>
-          <div className="h-2 rounded bg-gradient-to-r from-green-600 via-yellow-400 to-red-700" />
-          <p className="text-slate-500">Círculos grandes = top 1% y top 10% prioritarios</p>
+          <div className="h-2 rounded" style={{ background: `linear-gradient(to right, ${SEGMENT_STOPS.map(([, c]) => c).join(", ")})` }} />
+          <div className="flex justify-between text-slate-500">{SEGMENT_STOPS.map(([v]) => <span key={v}>{Math.round(v * 100)}%</span>)}</div>
+          <p className="text-slate-500">Círculos grandes = top 1% y top 10% prioritarios. Clic en una cuadra para ver por qué.</p>
         </div>
       )}
       {layers.permits && <p><span className="mr-1 inline-block h-2.5 w-4 border border-dashed border-orange-400 bg-orange-500/30 align-middle" />Obra CDOT con cierre + buffer 250 m</p>}

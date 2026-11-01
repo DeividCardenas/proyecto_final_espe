@@ -13,16 +13,24 @@ export function severityClass(s: Severity) {
   return s === 2 ? "bg-red-600/90 text-white" : s === 1 ? "bg-yellow-400/90 text-slate-900" : "bg-sky-500/80 text-white";
 }
 
-export function Card({ title, children, className, right }: { title?: string; children: ReactNode; className?: string; right?: ReactNode }) {
+/**
+ * Tarjeta del bento grid. `takeaway` es la lectura principal del gráfico (el dato
+ * con su comparación) y `context` la unidad, el ámbito y el periodo.
+ */
+export function Card({ title, children, className, right, takeaway, context }: {
+  title?: string; children: ReactNode; className?: string; right?: ReactNode; takeaway?: ReactNode; context?: ReactNode;
+}) {
   return (
     <section className={cn("hud-panel rounded-xl border border-slate-800 bg-slate-900/80 p-3", className)}>
       {title && (
-        <header className="mb-2 flex items-center justify-between">
+        <header className="mb-1 flex items-center justify-between gap-2">
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{title}</h3>
           {right}
         </header>
       )}
+      {takeaway && <p className="mb-2 text-[13px] font-medium leading-snug text-slate-100">{takeaway}</p>}
       {children}
+      {context && <p className="mt-1.5 text-[10px] leading-snug text-slate-500">{context}</p>}
     </section>
   );
 }

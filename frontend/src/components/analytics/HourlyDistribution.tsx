@@ -1,25 +1,13 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { crashService } from "@/services/crashService";
-import { useQueryFilters } from "@/hooks/useViewportCrashes";
+import { useKpis } from "@/hooks/useKpis";
 import { useFilterStore } from "@/stores/useFilterStore";
-import { Card } from "@/components/ui";
+import { Card, fmtNumber } from "@/components/ui";
+import { ColumnChart } from "@/components/charts/d3";
 
-import type { ThemeDef } from "@/theme/themes";
-import { useTheme } from "@/stores/useThemeStore";
-
-export function tooltipStyleFor(t: ThemeDef) {
-  return {
-    contentStyle: { background: t.chart.tooltipBg, border: `1px solid ${t.chart.tooltipBorder}`, borderRadius: 4, fontSize: 11 },
-    labelStyle: { color: "rgb(var(--slate-200))" },
-    itemStyle: { color: "rgb(var(--slate-200))" },
-  };
-}
-
+/** Distribución por hora: se resalta la hora pico y se compara con la hora promedio. */
 export function HourlyDistribution() {
-  const t = useTheme();
-  const tooltipStyle = tooltipStyleFor(t);
-  const f = useQueryFilters();
+  const { filters: f, scope } = useKpis();
   const setHourRange = useFilterStore((s) => s.setHourRange);
   // La distribución horaria ignora el filtro de horas para mostrar el contexto completo
   const q = { ...f, hourRange: [0, 23] as [number, number] };
@@ -29,22 +17,26 @@ export function HourlyDistribution() {
     enabled: !!f.bounds,
     placeholderData: keepPreviousData,
   });
+  const total = data.reduce((a, d) => a + d.crashes, 0);
+  const avg = total / 24;
+  const peak = data.reduce<(typeof data)[number] | null>((a, d) => (!a || d.crashes > a.crashes ? d : a), null);
   return (
-    <Card title="Siniestros por hora del día" right={<span className="text-[10px] text-slate-500">clic = filtrar hora</span>}>
-      <div className="h-40">
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-          <BarChart data={data} margin={{ left: -18, right: 4, top: 4 }}>
-            <CartesianGrid stroke={t.chart.grid} vertical={false} />
-            <XAxis dataKey="hour" tick={{ fill: t.chart.axis, fontSize: 10 }} interval={2} />
-            <YAxis tick={{ fill: t.chart.axis, fontSize: 10 }} />
-            <Tooltip {...tooltipStyle} formatter={(v: number, n: string) => [v.toLocaleString("es"), n === "crashes" ? "Siniestros" : "Críticos"]}
-              labelFormatter={(h) => `${h}:00`} />
-            <Bar dataKey="crashes" fill={t.chart.primary} radius={[2, 2, 0, 0]}
-              onClick={(d: { hour?: number }) => d.hour !== undefined && setHourRange([d.hour, d.hour])} cursor="pointer" />
-            <Bar dataKey="critical" fill={t.chart.critical} radius={[2, 2, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+    <Card
+      title="¿A qué hora?"
+      className="col-span-2"
+      right={<span className="text-[10px] text-slate-500">clic = filtrar hora</span>}
+      takeaway={peak && avg > 0 && (
+        <>Pico a las <b>{peak.hour}:00</b>: {fmtNumber(peak.crashes)} siniestros, {(peak.crashes / avg).toLocaleString("es", { maximumFractionDigits: 1 })}× la hora promedio.</>
+      )}
+      context={`Siniestros por hora de inicio · ${scope}`}
+    >
+      <ColumnChart
+        ariaLabel="Siniestros por hora del día"
+        data={data.map((d) => ({ key: d.hour, label: `${d.hour}h`, value: d.crashes }))}
+        highlight={peak?.hour}
+        reference={avg > 0 ? { value: avg, label: `promedio ${fmtNumber(avg)}` } : undefined}
+        onSelect={(h) => setHourRange([Number(h), Number(h)])}
+      />
     </Card>
   );
 }

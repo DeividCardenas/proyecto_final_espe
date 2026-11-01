@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, type ReactNode } from "react";
-import { Popup, type GeoJSONSource, type MapGeoJSONFeature, type MapLayerMouseEvent, type Map as MLMap } from "maplibre-gl";
+import { type GeoJSONSource, type MapGeoJSONFeature, type MapLayerMouseEvent, type Map as MLMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useQuery } from "@tanstack/react-query";
 import { MapProvider } from "@/context/MapContext";
 import { BASEMAP_STYLE, useMapLibre } from "@/hooks/useMapLibre";
 import { useSpatialFilters } from "@/hooks/useSpatialFilters";
+import { useTopSegments } from "@/hooks/useTopSegments";
 import { useQueryFilters, useViewportCrashes } from "@/hooks/useViewportCrashes";
 import { crashService } from "@/services/crashService";
 import { useFilterStore } from "@/stores/useFilterStore";
@@ -23,6 +24,7 @@ import { addSegmentLayer, SEGMENT_LAYER, setSegmentData } from "./layers/Segment
 import { MapPopup } from "./MapPopup";
 import { useTheme } from "@/stores/useThemeStore";
 import { applyMapTheme } from "@/theme/mapTheme";
+import type { SegmentProps } from "@/types/api";
 
 const LAYER_GROUPS: Record<LayerId, string[]> = {
   heatmap: [HEATMAP_LAYER],
@@ -35,33 +37,6 @@ const LAYER_GROUPS: Record<LayerId, string[]> = {
   aadt: [AADT_LAYER],
 };
 const FILTERABLE_LAYERS = [HEATMAP_LAYER, POINTS_LAYER];
-
-/** Tarjeta DOM (sin innerHTML: evita inyección desde los datos) para un tramo. */
-function segmentCard(p: Record<string, number | string>): HTMLElement {
-  const el = document.createElement("div");
-  el.className = "text-xs text-slate-100 space-y-1";
-  const pct = (v: number | string) => (Number(v) * 100).toFixed(1) + "%";
-  const rows: [string, string][] = [
-    ["Prioridad", "#" + p.priority_rank + " (top " + pct(p.priority_pct) + ")"],
-    ["P(riesgo Alto)", pct(p.p_alto)],
-    ["Siniestros 12 meses", String(p.crashes)],
-    ["Graves / fatales", p.severe_crashes + " / " + p.fatalities],
-    ["Peatones / ciclistas", p.ped_crashes + " / " + p.bike_crashes],
-  ];
-  const title = document.createElement("p");
-  title.className = "font-semibold text-sm";
-  title.textContent = String(p.segment_id);
-  el.appendChild(title);
-  for (const [k, v] of rows) {
-    const r = document.createElement("p");
-    const b = document.createElement("span");
-    b.className = "text-slate-400";
-    b.textContent = k + ": ";
-    r.append(b, document.createTextNode(v));
-    el.appendChild(r);
-  }
-  return el;
-}
 
 function initLayers(map: MLMap, tileUrl: string) {
   // Orden de apilado: rejilla de riesgo < obras < aforos < densidad < puntos < clusters
@@ -91,8 +66,8 @@ export function MapContainer({ children }: { children?: ReactNode }) {
   const startDate = useFilterStore((s) => s.startDate);
   const endDate = useFilterStore((s) => s.endDate);
   const drawerOpen = useUiStore((s) => s.drawerOpen);
-  const { selectedCrashId, selectedCoords, flyOnSelect, selectCrash, pickingPoint, setSimulatorPoint, simulatorPoint } =
-    useUiStore();
+  const { selectedCrashId, selectedCoords, flyOnSelect, selectCrash, pickingPoint, setSimulatorPoint, simulatorPoint,
+    selectSegment, selectedSegment } = useUiStore();
 
   // --- Inicialización de capas y sincronización del viewport ---
   useEffect(() => {
@@ -144,7 +119,7 @@ export function MapContainer({ children }: { children?: ReactNode }) {
     enabled: layers.permits && !!filters.bounds,
   });
   const hotspots = useQuery({ queryKey: ["hotspots", filters], queryFn: () => crashService.hotspots(filters), enabled: layers.hotspots && !!filters.bounds });
-  const segments = useQuery({ queryKey: ["segments"], queryFn: () => crashService.segments(), enabled: layers.segments, staleTime: Infinity });
+  const { segments } = useTopSegments(layers.segments);
   const aadt = useQuery({ queryKey: ["aadt"], queryFn: crashService.aadt, enabled: layers.aadt, staleTime: Infinity });
 
   useEffect(() => { if (map && loaded && viewport.data) setClusterData(map, viewport.data); }, [map, loaded, viewport.data]);
@@ -190,10 +165,9 @@ export function MapContainer({ children }: { children?: ReactNode }) {
     const onSegment = (e: MapLayerMouseEvent) => {
       const f = e.features?.[0];
       if (!f || pickingRef.current) return;
-      new Popup({ className: "crash-popup", maxWidth: "280px" })
-        .setLngLat(e.lngLat)
-        .setDOMContent(segmentCard(f.properties as Record<string, number | string>))
-        .addTo(map);
+      // La predicción explicada de la cuadra se muestra en el panel lateral
+      const coordinates = (f.geometry as GeoJSON.Point).coordinates as [number, number];
+      selectSegment({ ...(f.properties as SegmentProps), coordinates });
     };
     map.on("click", SEGMENT_LAYER, onSegment);
     map.on("click", POINTS_LAYER, onPoint);
@@ -213,7 +187,7 @@ export function MapContainer({ children }: { children?: ReactNode }) {
         map.off("mouseleave", id, reset);
       }
     };
-  }, [map, loaded, selectCrash, setSimulatorPoint]);
+  }, [map, loaded, selectCrash, setSimulatorPoint, selectSegment]);
 
   useEffect(() => {
     if (map) map.getCanvas().style.cursor = pickingPoint ? "crosshair" : "";
@@ -222,9 +196,9 @@ export function MapContainer({ children }: { children?: ReactNode }) {
   // --- Selección bidireccional tabla <-> mapa ---
   useEffect(() => {
     if (!map || !loaded) return;
-    setHighlight(map, selectedCoords ?? simulatorPoint);
+    setHighlight(map, selectedCoords ?? selectedSegment?.coordinates ?? simulatorPoint);
     if (selectedCoords && flyOnSelect) map.flyTo({ center: selectedCoords, zoom: Math.max(map.getZoom(), 16), speed: 1.4 });
-  }, [map, loaded, selectedCoords, flyOnSelect, simulatorPoint]);
+  }, [map, loaded, selectedCoords, flyOnSelect, simulatorPoint, selectedSegment]);
 
   const closePopup = useCallback(() => selectCrash(null), [selectCrash]);
 

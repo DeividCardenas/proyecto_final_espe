@@ -24,7 +24,8 @@ export const useMapStore = create<MapState>((set) => ({
   center: CHICAGO_CENTER,
   zoom: 10.5,
   bounds: null,
-  layers: { heatmap: true, points: true, clusters: false, risk: false, segments: false, permits: false, hotspots: false, aadt: false },
+  // Por defecto, el mapa cuenta una sola historia: las cuadras priorizadas por el modelo
+  layers: { heatmap: false, points: true, clusters: false, risk: false, segments: true, permits: false, hotspots: false, aadt: false },
   setViewport: (center, zoom, bounds) => set({ center, zoom, bounds }),
   toggleLayer: (id) => set((s) => ({ layers: { ...s.layers, [id]: !s.layers[id] } })),
 }));

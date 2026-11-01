@@ -1,4 +1,9 @@
 import { create } from "zustand";
+import type { SegmentProps } from "@/types/api";
+
+export interface SelectedSegment extends SegmentProps {
+  coordinates: [number, number];
+}
 
 export type PanelTab = "analytics" | "segments" | "simulator" | "model";
 
@@ -12,6 +17,9 @@ interface UiState {
   simulatorPoint: [number, number] | null;
   pickingPoint: boolean;
   focusPoint: [number, number] | null;
+  /** Cuadra seleccionada en el mapa o en la lista: su predicción se explica en el panel */
+  selectedSegment: SelectedSegment | null;
+  selectSegment: (s: SelectedSegment | null) => void;
   focus: (p: [number, number]) => void;
   setTab: (t: PanelTab) => void;
   togglePanel: () => void;
@@ -22,7 +30,7 @@ interface UiState {
 }
 
 export const useUiStore = create<UiState>((set) => ({
-  activeTab: "analytics",
+  activeTab: "segments",
   panelOpen: true,
   drawerOpen: false,
   selectedCrashId: null,
@@ -31,6 +39,9 @@ export const useUiStore = create<UiState>((set) => ({
   simulatorPoint: null,
   pickingPoint: false,
   focusPoint: null,
+  selectedSegment: null,
+  selectSegment: (selectedSegment) =>
+    set(selectedSegment ? { selectedSegment, activeTab: "segments", panelOpen: true } : { selectedSegment }),
   focus: (focusPoint) => set({ focusPoint: [...focusPoint] as [number, number] }),
   setTab: (activeTab) => set({ activeTab, panelOpen: true }),
   togglePanel: () => set((s) => ({ panelOpen: !s.panelOpen })),
