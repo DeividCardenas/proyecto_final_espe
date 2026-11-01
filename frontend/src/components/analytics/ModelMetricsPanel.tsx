@@ -25,7 +25,7 @@ export function ModelMetricsPanel() {
   }));
   return (
     <div className="space-y-3">
-      <Card title={`Modelo ganador · ${data.winner}`}>
+      <Card title={`Modelo por siniestro (severidad) · ganador ${data.winner}`}>
         <p className="text-[11px] text-slate-400">
           Entrenado con {fmtNumber(data.n_rows)} siniestros · artefacto {data.artifact.size_mb} MB · carga {data.artifact.load_ms} ms · inferencia {data.artifact.single_inference_ms} ms
         </p>
