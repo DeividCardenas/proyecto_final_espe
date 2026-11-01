@@ -135,8 +135,12 @@ def _query(sql: str, params: dict) -> pd.DataFrame:
         return pd.DataFrame(cur.fetchall(), columns=[d.name for d in cur.description])
 
 
-def build_segment_features(start: date, end: date) -> pd.DataFrame:
-    df = _query(FEATURES_SQL, {"start": start, "end": end})
+def build_segment_features(start: date, end: date, segment_id: str | None = None) -> pd.DataFrame:
+    if segment_id is None:
+        df = _query(FEATURES_SQL, {"start": start, "end": end})
+    else:  # una sola cuadra (explicación de su predicción en la API)
+        df = _query(f"SELECT * FROM ({FEATURES_SQL}) f WHERE segment_id = %(seg)s",
+                    {"start": start, "end": end, "seg": segment_id})
     for col in df.columns:
         if col not in ("segment_id", "trafficway_type", "traffic_control_device"):
             df[col] = pd.to_numeric(df[col], errors="coerce").astype(float)

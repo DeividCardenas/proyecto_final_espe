@@ -1,41 +1,60 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useFilterStore } from "@/stores/useFilterStore";
 import { crashService } from "@/services/crashService";
-import { useQueryFilters } from "@/hooks/useViewportCrashes";
-import { Card } from "@/components/ui";
-import { tooltipStyleFor } from "./HourlyDistribution";
-import { useTheme } from "@/stores/useThemeStore";
+import { useKpis } from "@/hooks/useKpis";
+import { Card, fmtNumber, fmtPct } from "@/components/ui";
+import { LineChart } from "@/components/charts/d3";
 
+/** "YYYY-MM" como fecha local (new Date() lo leería en UTC y en Chicago caería en el mes anterior). */
+const monthDate = (s: string) => {
+  const [y, m] = s.split("-").map(Number);
+  return new Date(y, m - 1, 1);
+};
+/** "YYYY-MM-DD..." como fecha local, por el mismo motivo. */
+const dayDate = (s: string) => {
+  const [y, m, d] = s.slice(0, 10).split("-").map(Number);
+  return new Date(y, m - 1, d);
+};
+const daysInMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+
+/** Evolución mensual frente a la media del periodo; el último mes se excluye si los datos no lo cubren entero. */
 export function MonthlyTrend() {
-  const t = useTheme();
-  const tooltipStyle = tooltipStyleFor(t);
-  const f = useQueryFilters();
+  const { filters: f, scope, city } = useKpis();
+  const endDate = useFilterStore((s) => s.endDate);
   const { data = [] } = useQuery({
     queryKey: ["monthly", f],
     queryFn: () => crashService.monthly(f),
     enabled: !!f.bounds,
     placeholderData: keepPreviousData,
   });
+  const series = data.map((d) => ({ date: monthDate(d.month), value: d.crashes }));
+  // Corte de cobertura: último dato de toda la ciudad (no el de la ventana visible)
+  // o la fecha final del filtro, lo que llegue antes
+  const cityLast = city.data?.last_date ? dayDate(city.data.last_date) : null;
+  const filterEnd = endDate ? dayDate(endDate) : null;
+  const cutoff = cityLast && filterEnd ? (filterEnd < cityLast ? filterEnd : cityLast) : cityLast ?? filterEnd;
+  const lastBucket = series[series.length - 1];
+  const partial = !!cutoff && !!lastBucket
+    && lastBucket.date.getFullYear() === cutoff.getFullYear() && lastBucket.date.getMonth() === cutoff.getMonth()
+    && cutoff.getDate() < daysInMonth(cutoff);
+  const full = partial ? series.slice(0, -1) : series;
+  const mean = full.length ? full.reduce((a, d) => a + d.value, 0) / full.length : 0;
+  const last = full[full.length - 1];
   return (
-    <Card title="Tendencia mensual">
-      <div className="h-32">
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-          <AreaChart data={data} margin={{ left: -18, right: 4, top: 4 }}>
-            <defs>
-              <linearGradient id="gCrash" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={t.chart.primary} stopOpacity={0.6} />
-                <stop offset="100%" stopColor={t.chart.primary} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid stroke={t.chart.grid} vertical={false} />
-            <XAxis dataKey="month" tick={{ fill: t.chart.axis, fontSize: 10 }} minTickGap={24} />
-            <YAxis tick={{ fill: t.chart.axis, fontSize: 10 }} />
-            <Tooltip {...tooltipStyle} formatter={(v: number, n: string) => [v.toLocaleString("es"), n === "crashes" ? "Siniestros" : "Críticos"]} />
-            <Area type="monotone" dataKey="crashes" stroke={t.chart.primary} fill="url(#gCrash)" strokeWidth={1.5} />
-            <Area type="monotone" dataKey="critical" stroke={t.chart.critical} fill="none" strokeWidth={1.5} />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+    <Card
+      title="¿Cómo evoluciona?"
+      className="col-span-2"
+      takeaway={last && mean > 0 && (
+        <>{last.date.toLocaleDateString("es", { month: "long", year: "numeric" })}: {fmtNumber(last.value)} siniestros, {" "}
+          {last.value >= mean ? "+" : ""}{fmtPct(last.value / mean - 1, 0)} frente al mes promedio.</>
+      )}
+      context={`Siniestros por mes${partial ? " (mes en curso excluido por incompleto)" : ""} · ${scope}`}
+    >
+      <LineChart
+        ariaLabel="Siniestros por mes"
+        data={full}
+        reference={mean > 0 ? { value: mean, label: `promedio ${fmtNumber(mean)}` } : undefined}
+      />
     </Card>
   );
 }

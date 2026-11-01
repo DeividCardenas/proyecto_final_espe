@@ -127,6 +127,42 @@ async def risk_segments(
     }
 
 
+def _segment_distribution(size: int) -> dict:
+    n = duckdb_engine.query("SELECT count(*) AS n FROM gold_segment_risk")[0]["n"]
+    step = max(1, n // size)
+    # Muestra sistemática por rango: conserva la forma de la distribución completa
+    rows = duckdb_engine.query(
+        "SELECT p_alto FROM gold_segment_risk WHERE priority_rank % ? = 0 ORDER BY priority_rank", [step])
+    return {"segments_total": int(n), "step": step, "p_alto": [round(float(r["p_alto"]), 4) for r in rows]}
+
+
+@router.get("/segment-distribution", summary="Muestra de P(riesgo Alto) de todas las cuadras (para comparar un tramo)")
+async def segment_distribution(size: int = Query(1_500, ge=100, le=5_000)) -> dict:
+    try:
+        return await run_in_threadpool(_segment_distribution, size)
+    except FileNotFoundError:
+        raise HTTPException(status_code=503, detail="Capa Gold (DuckDB) no disponible")
+    except Exception:
+        raise HTTPException(status_code=404, detail="Aún no se ha entrenado el modelo por tramo")
+
+
+@router.get("/segment-explain", summary="Probabilidad de un tramo y variables que la explican (modelo por tramo)")
+async def segment_explain(segment_id: str = Query(..., min_length=3, max_length=120)) -> dict:
+    from app.ml.segment_explain import explain_segment, model_mtime
+
+    try:
+        mtime = model_mtime()
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Aún no se ha entrenado el modelo por tramo")
+    try:
+        result = await run_in_threadpool(explain_segment, segment_id, mtime)
+    except NotImplementedError as exc:
+        raise HTTPException(status_code=501, detail=str(exc))
+    if result is None:
+        raise HTTPException(status_code=404, detail="Tramo sin siniestros en la ventana de historia")
+    return result
+
+
 @router.get("/segment-model-metrics", summary="Métricas del modelo de riesgo por tramo vial")
 async def segment_model_metrics() -> dict:
     path = Path(settings.MODEL_PATH).with_name("segment_model_report.json")

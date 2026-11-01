@@ -22,10 +22,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          // React y las librerías que dependen de él en un mismo chunk: separarlos
-          // provocaba que recharts se evaluara antes que React en producción.
+          // React y las librerías que dependen de él en un mismo chunk
           maplibre: ["maplibre-gl"],
-          vendor: ["react", "react-dom", "recharts", "@tanstack/react-query", "@tanstack/react-table",
+          vendor: ["react", "react-dom", "@tanstack/react-query", "@tanstack/react-table",
             "@tanstack/react-virtual"],
         },
       },

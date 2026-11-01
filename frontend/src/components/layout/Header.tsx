@@ -12,8 +12,8 @@ interface Health {
 }
 
 const TABS: { id: PanelTab; label: string; icon: typeof BarChart3 }[] = [
-  { id: "analytics", label: "Analítica", icon: BarChart3 },
   { id: "segments", label: "Tramos", icon: ListOrdered },
+  { id: "analytics", label: "Analítica", icon: BarChart3 },
   { id: "simulator", label: "Simulador", icon: Gauge },
   { id: "model", label: "Modelo", icon: Brain },
 ];

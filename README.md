@@ -122,6 +122,8 @@ cd frontend && npm ci && npm run typecheck && npm test
 | GET | `/risk/model-metrics` | Métricas del modelo entrenado |
 | GET | `/risk/segments` | Cuadras con riesgo anticipado para 12 meses, ordenadas por prioridad |
 | GET | `/risk/segment-model-metrics` | Comparativa logística/RF/XGBoost con validación temporal y espacial |
+| GET | `/risk/segment-explain?segment_id=` | P(riesgo Alto) de una cuadra y aporte de cada variable (log-odds frente a una cuadra típica) |
+| GET | `/risk/segment-distribution` | Muestra sistemática de P(riesgo Alto) de todas las cuadras, para comparar una con el resto |
 | POST | `/predict/segment-risk` | Riesgo de un tramo (Bajo, Moderado o Crítico), probabilidades y factores SHAP |
 
 Ejemplo de predicción:

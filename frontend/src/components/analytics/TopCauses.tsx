@@ -1,32 +1,47 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { crashService } from "@/services/crashService";
-import { useQueryFilters } from "@/hooks/useViewportCrashes";
-import { Card, fmtPct } from "@/components/ui";
+import { useKpis } from "@/hooks/useKpis";
+import { Card, fmtNumber, fmtPct } from "@/components/ui";
+import { RankChart } from "@/components/charts/d3";
 
+// "UNKNOWN" es el valor con el que la API marca una causa ausente
+const UNDETERMINED = new Set(["UNABLE TO DETERMINE", "NOT APPLICABLE", "UNKNOWN"]);
+
+/** Ranking de causas contributivas (barras desde cero; la tasa crítica va como nota). */
 export function TopCauses() {
-  const f = useQueryFilters();
+  const { filters: f, scope, local } = useKpis();
   const { data = [] } = useQuery({
     queryKey: ["causes", f],
     queryFn: () => crashService.causes(f),
     enabled: !!f.bounds,
     placeholderData: keepPreviousData,
   });
-  const max = Math.max(1, ...data.map((d) => d.crashes));
+  const total = local.data?.total_crashes ?? 0;
+  const known = data.filter((d) => !UNDETERMINED.has(d.cause));
+  const undetermined = data.filter((d) => UNDETERMINED.has(d.cause)).reduce((a, d) => a + d.crashes, 0);
+  const first = known[0];
+  const label = (s: string) => {
+    const l = s.toLowerCase();
+    return l.length > 46 ? `${l.slice(0, 45)}…` : l;
+  };
   return (
-    <Card title="Causas contributivas principales">
-      <ul className="space-y-1.5">
-        {data.map((d) => (
-          <li key={d.cause} className="text-[11px]">
-            <div className="flex justify-between gap-2 text-slate-300">
-              <span className="truncate" title={d.cause}>{d.cause.toLowerCase()}</span>
-              <span className="shrink-0 tabular-nums text-slate-500">{d.crashes.toLocaleString("es")} · <b className="text-red-300">{fmtPct(d.critical_rate)}</b></span>
-            </div>
-            <div className="mt-0.5 h-1 rounded bg-slate-800">
-              <div className="h-1 rounded bg-indigo-500" style={{ width: `${(d.crashes / max) * 100}%` }} />
-            </div>
-          </li>
-        ))}
-      </ul>
+    <Card
+      title="¿Por qué ocurren?"
+      className="col-span-2"
+      takeaway={first && total > 0 && (
+        <>La causa identificada más frecuente es <b>{first.cause.toLowerCase()}</b> ({fmtPct(first.crashes / total, 0)} del total).</>
+      )}
+      context={`Causa contributiva principal; ${total > 0 ? `${fmtPct(undetermined / total, 0)} sin causa determinada (excluidos)` : ""} · ${scope}`}
+    >
+      <RankChart
+        ariaLabel="Causas contributivas más frecuentes"
+        data={known.slice(0, 6).map((d) => ({
+          label: label(d.cause),
+          value: d.crashes,
+          note: `${fmtPct(d.critical_rate, 1)} críticos`,
+        }))}
+        format={(v) => fmtNumber(v)}
+      />
     </Card>
   );
 }

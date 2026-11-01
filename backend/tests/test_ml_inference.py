@@ -90,3 +90,25 @@ def test_segments_geojson_sorted_by_priority(client):
     fc = client.get("/api/v1/risk/segments", params={"limit": 50, "min_class": 2}).json()
     ranks = [f["properties"]["priority_rank"] for f in fc["features"]]
     assert ranks == sorted(ranks) and all(f["properties"]["risk_class"] == 2 for f in fc["features"])
+
+
+@segment_missing
+def test_segment_explanation_reproduces_published_probability(client):
+    fc = client.get("/api/v1/risk/segments", params={"limit": 3}).json()
+    for f in fc["features"]:
+        p = f["properties"]
+        r = client.get("/api/v1/risk/segment-explain", params={"segment_id": p["segment_id"]})
+        assert r.status_code == 200
+        e = r.json()
+        # La explicación recalcula la predicción con la misma ventana: debe coincidir con la publicada
+        assert abs(e["probabilities"]["Alto"] - p["p_alto"]) < 1e-3
+        assert abs(sum(e["probabilities"].values()) - 1) < 1e-6
+        assert len(e["factors"]) > 5 and e["factors"][0]["label"]
+
+
+@segment_missing
+def test_segment_explain_unknown_and_distribution(client):
+    assert client.get("/api/v1/risk/segment-explain", params={"segment_id": "99999 X NO EXISTE"}).status_code == 404
+    d = client.get("/api/v1/risk/segment-distribution").json()
+    assert d["segments_total"] > 1000 and len(d["p_alto"]) >= 1000
+    assert all(0 <= v <= 1 for v in d["p_alto"])

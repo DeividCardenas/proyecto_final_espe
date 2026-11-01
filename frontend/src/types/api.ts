@@ -148,3 +148,24 @@ export interface SegmentModelMetrics {
   confusion_matrix: number[][];
   forecast: { history_window: string; segments_scored: number; high_risk_segments: number };
 }
+
+export interface SegmentFactor {
+  feature: string;
+  label: string;
+  /** Aporte al log-odds de riesgo Alto frente a Bajo respecto a una cuadra típica */
+  contribution: number;
+  value: number | string | null;
+  city_mean: number | null;
+  unit: string | null;
+}
+
+export interface SegmentExplanation {
+  segment_id: string;
+  history_window: string;
+  algorithm: string;
+  probabilities: { Bajo: number; Medio: number; Alto: number };
+  base_rate_high: number;
+  log_odds: { intercept: number; total: number };
+  factors: SegmentFactor[];
+  method: string;
+}

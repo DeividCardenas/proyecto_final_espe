@@ -1,53 +1,53 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { crashService } from "@/services/crashService";
-import { useQueryFilters } from "@/hooks/useViewportCrashes";
-import { Card, fmtPct } from "@/components/ui";
-import { tooltipStyleFor } from "./HourlyDistribution";
-import { useTheme } from "@/stores/useThemeStore";
+import { useKpis } from "@/hooks/useKpis";
+import { Card, fmtNumber, fmtPct } from "@/components/ui";
+import { RankChart } from "@/components/charts/d3";
 
+const WEATHER_ES: Record<string, string> = {
+  CLEAR: "Despejado", RAIN: "Lluvia", SNOW: "Nieve", CLOUDY: "Nublado", "CLOUDY/OVERCAST": "Nublado",
+  UNKNOWN: "Desconocido", OTHER: "Otro", "FREEZING RAIN/DRIZZLE": "Lluvia helada", "FOG/SMOKE/HAZE": "Niebla",
+  "SLEET/HAIL": "Aguanieve / granizo", "BLOWING SNOW": "Ventisca", "SEVERE CROSS WIND GATE": "Viento cruzado",
+  "BLOWING SAND, SOIL, DIRT": "Polvo",
+};
+// Con menos siniestros la tasa es demasiado inestable para compararla
+const MIN_CRASHES = 200;
 
+/** Tasa de siniestros críticos por clima, comparada con la tasa global (posición sobre una escala común). */
 export function WeatherImpactChart() {
-  const t = useTheme();
-  const tooltipStyle = tooltipStyleFor(t);
-  const COLORS = t.chart.series;
-  const f = useQueryFilters();
+  const { filters: f, scope, local } = useKpis();
   const { data = [] } = useQuery({
     queryKey: ["weather", f],
     queryFn: () => crashService.weather(f),
     enabled: !!f.bounds,
     placeholderData: keepPreviousData,
   });
-  const top = data.slice(0, 6);
-  const rest = data.slice(6).reduce((a, r) => a + r.crashes, 0);
-  const slices = rest > 0 ? [...top, { weather: "OTROS", crashes: rest, critical_rate: NaN }] : top;
-  const total = slices.reduce((a, r) => a + r.crashes, 0) || 1;
+  const total = data.reduce((a, d) => a + d.crashes, 0) || 1;
+  const rows = data.filter((d) => d.crashes >= MIN_CRASHES).sort((a, b) => b.critical_rate - a.critical_rate);
+  const overall = local.data?.critical_rate ?? null;
+  const worst = rows[0];
   return (
-    <Card title="Impacto del clima">
-      <div className="flex items-center gap-2">
-        <div className="h-36 w-36 shrink-0">
-          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-            <PieChart>
-              <Pie data={slices} dataKey="crashes" nameKey="weather" innerRadius={38} outerRadius={64} paddingAngle={1} stroke="none">
-                {slices.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-              </Pie>
-              <Tooltip {...tooltipStyle} formatter={(v: number) => v.toLocaleString("es")} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <ul className="min-w-0 flex-1 space-y-1 text-[11px]">
-          {slices.map((s, i) => (
-            <li key={s.weather} className="flex items-center gap-1.5 text-slate-300">
-              <i className="h-2 w-2 shrink-0 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
-              <span className="truncate" title={s.weather}>{s.weather}</span>
-              <span className="ml-auto tabular-nums text-slate-400">{fmtPct(s.crashes / total, 0)}</span>
-              {!Number.isNaN(s.critical_rate) && (
-                <span className="w-12 text-right tabular-nums text-red-300" title="Tasa de siniestros críticos">{fmtPct(s.critical_rate, 1)}</span>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
+    <Card
+      title="¿Con qué clima son más graves?"
+      className="col-span-2"
+      takeaway={worst && overall ? (
+        <>Con <b>{(WEATHER_ES[worst.weather] ?? worst.weather).toLowerCase()}</b> la tasa crítica es {fmtPct(worst.critical_rate, 2)},{" "}
+          {(worst.critical_rate / overall).toLocaleString("es", { maximumFractionDigits: 1 })}× la global.</>
+      ) : undefined}
+      context={`% de siniestros con fallecidos o lesiones incapacitantes; climas con ≥ ${MIN_CRASHES} siniestros · ${scope}`}
+    >
+      <RankChart
+        ariaLabel="Tasa de siniestros críticos por condición climática"
+        mark="dot"
+        data={rows.map((d, i) => ({
+          label: WEATHER_ES[d.weather] ?? d.weather,
+          value: d.critical_rate,
+          note: `${fmtPct(d.crashes / total, 0)} de los siniestros (${fmtNumber(d.crashes)})`,
+          highlight: i === 0,
+        }))}
+        format={(v) => fmtPct(v, 2)}
+        reference={overall ? { value: overall, label: `global ${fmtPct(overall, 2)}` } : undefined}
+      />
     </Card>
   );
 }

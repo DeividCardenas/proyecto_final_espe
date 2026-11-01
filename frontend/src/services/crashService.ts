@@ -3,7 +3,7 @@ import { api, absoluteApiUrl } from "./api";
 import type { Bounds } from "@/stores/useMapStore";
 import type {
   AadtRow, CauseRow, CrashCollection, CrashDetail, HotspotProps, HourlyRow, Kpis, ModelMetrics, MonthlyRow,
-  PermitProps, RiskGrid, SegmentModelMetrics, SegmentProps, Severity, WeatherRow,
+  PermitProps, RiskGrid, SegmentExplanation, SegmentModelMetrics, SegmentProps, Severity, WeatherRow,
 } from "@/types/api";
 
 export interface QueryFilters {
@@ -47,6 +47,10 @@ export const crashService = {
   riskGrid: () => api.get<RiskGrid>("/risk/grid").then((r) => r.data),
   segments: (limit = 5000) =>
     api.get<FeatureCollection<Point, SegmentProps>>("/risk/segments", { params: { limit } }).then((r) => r.data),
+  segmentExplain: (segmentId: string) =>
+    api.get<SegmentExplanation>("/risk/segment-explain", { params: { segment_id: segmentId } }).then((r) => r.data),
+  segmentDistribution: () =>
+    api.get<{ segments_total: number; step: number; p_alto: number[] }>("/risk/segment-distribution").then((r) => r.data),
   segmentMetrics: () => api.get<SegmentModelMetrics>("/risk/segment-model-metrics").then((r) => r.data),
   modelMetrics: () => api.get<ModelMetrics>("/risk/model-metrics").then((r) => r.data),
   kpis: (f: QueryFilters) => api.get<Kpis>("/analytics/kpis", { params: toParams(f) }).then((r) => r.data),
@@ -57,7 +61,8 @@ export const crashService = {
   monthly: (f: QueryFilters) =>
     api.get<MonthlyRow[]>("/analytics/monthly-trend", { params: toParams(f) }).then((r) => r.data),
   causes: (f: QueryFilters) =>
-    api.get<CauseRow[]>("/analytics/top-causes", { params: { ...toParams(f), limit: 8 } }).then((r) => r.data),
+    // Límite máximo de la API (cubre todas las causas): el total sin causa determinada debe ser completo
+    api.get<CauseRow[]>("/analytics/top-causes", { params: { ...toParams(f), limit: 40 } }).then((r) => r.data),
   aadtSeverity: (f: QueryFilters) =>
     api.get<AadtRow[]>("/analytics/aadt-severity", { params: toParams(f) }).then((r) => r.data),
   tileUrl: (startDate: string | null, endDate: string | null) => {
