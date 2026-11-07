@@ -22,7 +22,8 @@ export function useSpatialFilters(map: MLMap | null, loaded: boolean, layerIds: 
   const severities = useFilterStore((s) => s.severities);
   useEffect(() => {
     if (!map || !loaded) return;
-    // En teselas agregadas (zoom < 13) no existe 'workzone' por punto: ese filtro se aplica en servidor
+    // «Sólo zona de obra» va en la URL de teselas (servidor), porque las teselas agregadas
+    // de zoom < 13 no traen 'workzone' por punto. Aquí sólo hora y severidad (GPU).
     const filter = buildCrashFilter(hourRange, severities);
     for (const id of layerIds) {
       if (map.getLayer(id)) map.setFilter(id, filter);

@@ -1,10 +1,11 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { crashService, type QueryFilters } from "@/services/crashService";
 import type { Severity } from "@/types/api";
+import { fmtDateTime } from "@/lib/dates";
 import { useQueryFilters } from "./useViewportCrashes";
 
-const fmtDate = (s: string | null | undefined) =>
-  s ? new Date(s).toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" }) : "—";
+// Fecha de calendario: new Date("YYYY-MM-DD") se leería en UTC y en América mostraría el día anterior
+const fmtDate = (s: string | null | undefined) => (s ? fmtDateTime(s.slice(0, 10)) : "—");
 
 const ALL_SEVERITIES: Severity[] = [0, 1, 2];
 
@@ -33,7 +34,7 @@ export function useKpis() {
   const composed = hasCompositionFilter(f);
   const kpis = (filters: QueryFilters, enabled = true) => ({
     queryKey: ["kpis", filters],
-    queryFn: () => crashService.kpis(filters),
+    queryFn: ({ signal }: { signal: AbortSignal }) => crashService.kpis(filters, signal),
     enabled,
     placeholderData: keepPreviousData,
     staleTime: 60_000,

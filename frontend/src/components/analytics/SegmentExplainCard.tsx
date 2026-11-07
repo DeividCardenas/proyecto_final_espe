@@ -5,6 +5,7 @@ import { useUiStore, type SelectedSegment } from "@/stores/useUiStore";
 import { Card, fmtNumber, fmtPct } from "@/components/ui";
 import { DivergingBars, StripPlot } from "@/components/charts/d3";
 import type { SegmentFactor } from "@/types/api";
+import { modelLabel } from "@/lib/modelLabels";
 
 const TOP_FACTORS = 6;
 
@@ -28,10 +29,10 @@ export function SegmentExplainCard({ segment }: { segment: SelectedSegment }) {
   const close = useUiStore((s) => s.selectSegment);
   const explain = useQuery({
     queryKey: ["segment-explain", segment.segment_id],
-    queryFn: () => crashService.segmentExplain(segment.segment_id),
+    queryFn: ({ signal }) => crashService.segmentExplain(segment.segment_id, signal),
     staleTime: Infinity,
   });
-  const dist = useQuery({ queryKey: ["segment-distribution"], queryFn: crashService.segmentDistribution, staleTime: Infinity });
+  const dist = useQuery({ queryKey: ["segment-distribution"], queryFn: ({ signal }) => crashService.segmentDistribution(signal), staleTime: Infinity });
 
   const e = explain.data;
   const pAlto = e?.probabilities.Alto ?? segment.p_alto;
@@ -48,7 +49,7 @@ export function SegmentExplainCard({ segment }: { segment: SelectedSegment }) {
       tourId="segment-explain"
       title="Predicción de la cuadra seleccionada"
       className="col-span-2 border-cyan-700/60"
-      right={<button onClick={() => close(null)} aria-label="Cerrar predicción" className="text-slate-500 hover:text-slate-200"><X size={14} /></button>}
+      right={<button onClick={() => close(null)} aria-label="Cerrar predicción" className="text-slate-400 hover:text-slate-200"><X size={14} /></button>}
       takeaway={
         <>
           <span className="block text-sm font-semibold">{segment.segment_id}</span>
@@ -59,7 +60,7 @@ export function SegmentExplainCard({ segment }: { segment: SelectedSegment }) {
       }
       context={e && (
         <>
-          Cómo se calcula: regresión logística (modelo por tramo) con la historia {e.history_window.replace("->", "a")}. Cada
+          Cómo se calcula: {modelLabel(e.algorithm).toLowerCase()} (modelo por tramo) con la historia {e.history_window.replace("->", "a")}. Cada
           barra es el aporte de una variable al log-odds de Alto frente a Bajo respecto a una cuadra típica; exacto para
           variables numéricas y aproximado para las categóricas. Las otras {e.factors.length - factors.length} variables suman{" "}
           {rest >= 0 ? "+" : ""}{rest.toFixed(2)}. P(Medio) {fmtPct(e.probabilities.Medio, 0)} · P(Bajo){" "}
@@ -73,7 +74,7 @@ export function SegmentExplainCard({ segment }: { segment: SelectedSegment }) {
         {" · "}{fmtNumber(segment.crashes)} siniestros y {fmtNumber(segment.severe_crashes)} graves en 12 meses
       </p>
 
-      <p className="mt-2 text-[10px] uppercase tracking-wide text-slate-500">Dónde queda frente a las demás cuadras</p>
+      <p className="mt-2 text-[10px] uppercase tracking-wide text-slate-400">Dónde queda frente a las demás cuadras</p>
       {dist.data ? (
         <StripPlot
           ariaLabel="Distribución de la probabilidad de riesgo Alto en todas las cuadras"
@@ -86,14 +87,14 @@ export function SegmentExplainCard({ segment }: { segment: SelectedSegment }) {
         <div className="h-16" />
       )}
 
-      <p className="mt-2 text-[10px] uppercase tracking-wide text-slate-500">Por qué</p>
+      <p className="mt-2 text-[10px] uppercase tracking-wide text-slate-400">Por qué</p>
       {(ups.length > 0 || downs.length > 0) && (
         <p className="mb-1 text-[12px] leading-snug text-slate-200" data-testid="plain-explanation">
           {ups.length > 0 && <>Lo que más sube el riesgo aquí: <b>{joinEs(ups)}</b>. </>}
           {downs.length > 0 && <>Lo que lo baja: {joinEs(downs)}.</>}
         </p>
       )}
-      {explain.isLoading && <p className="text-xs text-slate-500">Calculando…</p>}
+      {explain.isLoading && <p className="text-xs text-slate-400">Calculando…</p>}
       {explain.isError && <p className="text-xs text-slate-400">No se pudo explicar esta cuadra.</p>}
       {e && (
         <>
