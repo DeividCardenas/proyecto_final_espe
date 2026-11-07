@@ -255,3 +255,61 @@ body {
   border-top-color: rgb(var(--slate-900)) !important;
   border-bottom-color: rgb(var(--slate-900)) !important;
 }
+
+/* ============================================================================
+   Guía de uso (Driver.js): globos con los colores del tema activo
+   ========================================================================== */
+.driver-popover.crr-guide {
+  background: rgb(var(--slate-900));
+  color: rgb(var(--slate-300));
+  border: 1px solid rgb(var(--slate-700));
+  border-radius: 12px;
+  max-width: 340px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  font-family: var(--font-body), Inter, sans-serif;
+}
+.driver-popover.crr-guide .driver-popover-title {
+  color: rgb(var(--slate-100));
+  font-size: 15px;
+  font-family: var(--font-display), Inter, sans-serif;
+}
+.driver-popover.crr-guide .driver-popover-description {
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.driver-popover.crr-guide .crr-guide-row {
+  margin: 0 0 6px;
+}
+.driver-popover.crr-guide .crr-guide-row b {
+  color: rgb(var(--cyan-300));
+  font-weight: 600;
+}
+.driver-popover.crr-guide .driver-popover-progress-text {
+  color: rgb(var(--slate-500));
+}
+.driver-popover.crr-guide .driver-popover-footer button {
+  background: rgb(var(--slate-800));
+  color: rgb(var(--slate-200));
+  border: 1px solid rgb(var(--slate-700));
+  text-shadow: none;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.driver-popover.crr-guide .driver-popover-footer .driver-popover-next-btn {
+  background: rgb(var(--cyan-600));
+  border-color: rgb(var(--cyan-600));
+  color: #fff;
+}
+.driver-popover.crr-guide .driver-popover-close-btn {
+  color: rgb(var(--slate-500));
+}
+.driver-popover.crr-guide .driver-popover-arrow-side-left.driver-popover-arrow { border-left-color: rgb(var(--slate-900)); }
+.driver-popover.crr-guide .driver-popover-arrow-side-right.driver-popover-arrow { border-right-color: rgb(var(--slate-900)); }
+.driver-popover.crr-guide .driver-popover-arrow-side-top.driver-popover-arrow { border-top-color: rgb(var(--slate-900)); }
+.driver-popover.crr-guide .driver-popover-arrow-side-bottom.driver-popover-arrow { border-bottom-color: rgb(var(--slate-900)); }
+/* Puntos de ayuda: color de acento del tema, sin pulso constante (no distraen) */
+:root {
+  --driver-hint-color: rgb(var(--cyan-400));
+  --driver-hint-size: 18px;
+}

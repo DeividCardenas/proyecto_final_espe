@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState, type ComponentType } from "react";
-import { X } from "lucide-react";
+import { HelpCircle, X } from "lucide-react";
+import { startSectionTour } from "@/components/tour/guide";
 import { useUiStore } from "@/stores/useUiStore";
 import { cn } from "@/components/ui";
 import { TABS } from "./Header";
@@ -37,7 +38,7 @@ function AnalyticsBento() {
   const [view, setView] = useState<AnalyticsView>("summary");
   return (
     <div className="grid grid-cols-2 gap-2" data-testid="analytics-bento">
-      <div className="col-span-2 grid grid-cols-2 gap-1 rounded-lg border border-slate-800 p-0.5" role="tablist" aria-label="Paso de lectura">
+      <div className="col-span-2 grid grid-cols-2 gap-1 rounded-lg border border-slate-800 p-0.5" role="tablist" aria-label="Paso de lectura" data-tour="analytics-steps">
         {VIEWS.map((v) => (
           <button key={v.id} role="tab" aria-selected={view === v.id} onClick={() => setView(v.id)}
             className={cn("rounded-md py-1 text-[11px] text-slate-400 hover:text-slate-100", view === v.id && "bg-slate-800 text-slate-100")}>
@@ -79,7 +80,11 @@ export function AnalyticsPanel() {
           <h2 className="hud-title text-sm font-semibold text-slate-100">{tab.label}</h2>
           <p className="text-[11px] text-slate-500">{tab.hint}</p>
         </div>
-        <button onClick={togglePanel} aria-label="Cerrar panel" className="text-slate-500 hover:text-slate-200"><X size={16} /></button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => startSectionTour(activeTab)} aria-label={`Guía de ${tab.label}`} title={`Guía de ${tab.label}`}
+            className="text-slate-500 hover:text-slate-200"><HelpCircle size={15} /></button>
+          <button onClick={togglePanel} aria-label="Cerrar panel" className="text-slate-500 hover:text-slate-200"><X size={16} /></button>
+        </div>
       </header>
       <div className="flex-1 overflow-y-auto p-3">
         {/* Montaje condicional: los gráficos sólo existen cuando su sección está activa */}

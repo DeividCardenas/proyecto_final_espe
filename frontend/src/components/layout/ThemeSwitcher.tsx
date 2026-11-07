@@ -20,7 +20,7 @@ export function ThemeSwitcher() {
   }, [open]);
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative" data-tour="nav-theme">
       <button
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"

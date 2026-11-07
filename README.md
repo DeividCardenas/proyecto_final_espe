@@ -103,7 +103,11 @@ cd frontend && npm ci && npm run typecheck && npm test
 ```
 
 * **Backend (pytest, 25 pruebas):** sonda de salud, OpenAPI y CORS; BBOX exacto por debajo de 100 ms; uso del índice GiST; ausencia de índices duplicados; integridad referencial; precisión métrica del buffer de 250 m en EPSG:3435; cuarentena y deduplicación; contrato y validación 422 de `/predict`; tamaño y latencia del modelo.
-* **Frontend (Vitest, 9 pruebas):** ciclo de vida de `useMapLibre` (StrictMode, `map.remove()`, pérdida y restauración del contexto WebGL, ausencia de WebGL2); la tabla virtualizada renderiza 40 filas o menos de 10.000; expresiones de filtro GPU; exportación CSV.
+* **Frontend (Vitest, 18 pruebas):** ciclo de vida de `useMapLibre` (StrictMode, `map.remove()`, pérdida y restauración del contexto WebGL, ausencia de WebGL2); la tabla virtualizada renderiza 40 filas o menos de 10.000; expresiones de filtro GPU; exportación CSV; tasas sin filtros de composición; temas; filtros plegados al entrar; guía de uso (invitación de primera visita y recorrido).
+
+## Guía de uso dentro de la aplicación
+
+El menú **Ayuda** de la cabecera ofrece un recorrido completo (cada parte de la plataforma: qué hace, qué significa y cómo se hizo), la guía de la sección abierta y unos puntos de ayuda opcionales. En la primera visita sólo aparece una invitación discreta que se puede descartar. Se implementó con [Driver.js](https://driverjs.com) (MIT, sin dependencias) y el contenido está en `frontend/src/components/tour/guideContent.ts`.
 
 ## Endpoints principales (`/api/v1`)
 
@@ -158,6 +162,7 @@ frontend/
   src/hooks/              useMapLibre, useSpatialFilters, useViewportCrashes, useDebounce
   src/components/map/     MapContainer, MapPopup, MapLegend, MapControls, layers/*
   src/components/         layout, analytics, simulator, table
+  src/components/tour/    guía de uso con Driver.js: recorrido completo, guía por sección y puntos de ayuda
   nginx.conf              proxy /api, caché MVT, gzip_static, CSP
 data/                     raw (Bronze) · processed (Silver/Gold Parquet, reportes) · duckdb
 ```

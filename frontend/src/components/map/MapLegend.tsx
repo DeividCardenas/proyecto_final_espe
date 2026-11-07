@@ -9,7 +9,7 @@ export function MapLegend() {
   const layers = useMapStore((s) => s.layers);
   const zoom = useMapStore((s) => s.zoom);
   return (
-    <div className="hud-panel absolute bottom-6 left-3 w-56 space-y-2 rounded-xl border border-slate-800 bg-slate-900/90 p-3 text-[11px] text-slate-300 backdrop-blur">
+    <div data-tour="legend" className="hud-panel absolute bottom-6 left-3 w-56 space-y-2 rounded-xl border border-slate-800 bg-slate-900/90 p-3 text-[11px] text-slate-300 backdrop-blur">
       {layers.heatmap && (
         <div>
           <p className="mb-1 font-semibold text-slate-200">Densidad ponderada por severidad</p>

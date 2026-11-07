@@ -6,7 +6,7 @@ import { DataDrawer } from "@/components/layout/DataDrawer";
 import { MapContainer } from "@/components/map/MapContainer";
 import { MapControls } from "@/components/map/MapControls";
 import { MapLegend } from "@/components/map/MapLegend";
-import { GuidedTour } from "@/components/tour/GuidedTour";
+import { GuideInvite } from "@/components/tour/GuideInvite";
 import { useEffect } from "react";
 import { useTheme } from "@/stores/useThemeStore";
 import { applyThemeVars } from "@/theme/themes";
@@ -34,7 +34,7 @@ export default function App() {
               <MapContainer>
                 <MapControls />
                 <MapLegend />
-                <GuidedTour />
+                <GuideInvite />
               </MapContainer>
             </div>
             <DataDrawer />

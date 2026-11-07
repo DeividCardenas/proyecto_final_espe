@@ -235,7 +235,7 @@ export function MapContainer({ children }: { children?: ReactNode }) {
 
   return (
     <MapProvider value={{ map, loaded }}>
-      <div className="relative h-full w-full">
+      <div className="relative h-full w-full" data-tour="map">
         <div ref={containerRef} className="absolute inset-0" data-testid="map-canvas" />
         {!webGlSupported && (
           <div className="absolute inset-0 grid place-items-center bg-slate-950 text-slate-300 p-6 text-center">
