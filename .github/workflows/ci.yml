@@ -1,0 +1,85 @@
+# Integración continua: se ejecuta en cada push y en cada pull request.
+# Comprueba que el frontend compila y pasa sus pruebas, que las pruebas del backend que no
+# necesitan PostGIS con datos pasan, y que las imágenes Docker se construyen.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend (lint, tipos, pruebas y build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint --if-present
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Vulnerabilidades altas en dependencias de producción
+        # Informativo mientras se fusiona la actualización de dependencias; luego puede ser bloqueante
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
+
+  backend:
+    name: Backend (pruebas sin base de datos)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Compilar todos los módulos
+        run: python -m compileall -q app alembic tests
+      - name: Migraciones (SQL generado sin conectar)
+        run: alembic upgrade head --sql > /dev/null
+      - name: Pruebas unitarias
+        run: |
+          # Las pruebas de integración necesitan PostGIS con datos cargados (se ejecutan
+          # en local con `docker compose run --rm etl pytest`). Si el repositorio ya marca
+          # esas pruebas con `integration`, se excluyen por marcador; si no, se corre la
+          # lista de pruebas puras conocida.
+          if grep -qs "integration" pytest.ini; then
+            pytest -q -p no:cacheprovider -m "not integration"
+          else
+            pytest -q -p no:cacheprovider tests/test_data_cleaner.py \
+              "tests/test_ml_inference.py::test_build_features_columns_and_groups" \
+              "tests/test_ml_inference.py::test_artifact_size_and_load_time"
+          fi
+
+  docker:
+    name: Docker (compose válido e imágenes)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Archivo .env de prueba
+        run: cp .env.example .env
+      - name: Validar docker-compose.yml
+        run: docker compose config --quiet
+      - name: Construir imágenes
+        run: docker compose build
