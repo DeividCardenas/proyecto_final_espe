@@ -1,24 +1,43 @@
+"""Sondas de salud.
+
+* ``/live``: el proceso responde (no toca dependencias). Para reinicios por cuelgue.
+* ``/health``: diagnóstico completo. Devuelve **503** cuando PostGIS no responde,
+  para que Docker y nginx dejen de considerar sano un backend sin base de datos.
+"""
+import asyncio
 import os
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 from app.core.config import settings
-from app.core.database import get_pool
+from app.core.database import connection
 
 router = APIRouter()
 
+HEALTH_DB_TIMEOUT_S = 2.0
 
-@router.get("/health", summary="Sonda de salud y diagnóstico")
-async def health(request: Request) -> dict:
+
+async def _db_probe() -> str:
+    async with connection(timeout=HEALTH_DB_TIMEOUT_S) as conn:
+        return await conn.fetchval("SELECT postgis_lib_version()", timeout=HEALTH_DB_TIMEOUT_S)
+
+
+@router.get("/live", summary="Sonda de vida (sin dependencias)")
+async def live() -> dict:
+    return {"status": "UP"}
+
+
+@router.get("/health", summary="Sonda de salud y diagnóstico (503 si la base de datos no responde)")
+async def health(request: Request) -> JSONResponse:
     db_ok, postgis = False, None
     try:
-        async with get_pool().acquire() as conn:
-            postgis = await conn.fetchval("SELECT postgis_lib_version()")
-            db_ok = True
+        postgis = await asyncio.wait_for(_db_probe(), timeout=HEALTH_DB_TIMEOUT_S * 2)
+        db_ok = True
     except Exception:  # la sonda nunca debe lanzar excepción
         pass
     predictor = getattr(request.app.state, "predictor", None)
-    return {
+    body = {
         "status": "UP" if db_ok else "DEGRADED",
         "database": {"connected": db_ok, "postgis_version": postgis},
         "model": {
@@ -29,3 +48,4 @@ async def health(request: Request) -> dict:
         "olap": {"duckdb_available": os.path.exists(settings.DUCKDB_PATH)},
         "environment": settings.ENVIRONMENT,
     }
+    return JSONResponse(body, status_code=200 if db_ok else 503, headers={"Cache-Control": "no-store"})
