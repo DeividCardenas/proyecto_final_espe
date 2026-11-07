@@ -40,6 +40,33 @@ def test_people_age_and_sex_sanitized():
     assert out["sex"].iloc[0] == "M" and pd.isna(out["sex"].iloc[1])
 
 
-def test_incremental_where_uses_watermark():
-    w = build_where(DATASETS["crashes"], since="2023-01-01", watermark="2026-10-01T00:00:00.000")
-    assert w == "crash_date > '2026-10-01T00:00:00.000'"
+def test_incremental_where_uses_updated_at_watermark():
+    w = build_where(DATASETS["crashes"], since="2023-01-01",
+                    watermark={"max_updated_at": "2026-10-01T00:00:00.000", "max_value": "2026-09-30T23:00:00"})
+    # Nuevos y modificados (choques reportados tarde o corregidos), sin traer histórico anterior a since
+    assert w == "crash_date >= '2023-01-01T00:00:00' AND :updated_at > '2026-10-01T00:00:00.000'"
+
+
+def test_legacy_watermark_redownloads_lookback_window():
+    w = build_where(DATASETS["crashes"], since=None, watermark="2026-10-01T00:00:00.000", lookback_days=90)
+    assert w == "crash_date >= '2026-07-03T00:00:00'"
+
+
+def test_full_load_where_and_select_include_updated_at():
+    assert build_where(DATASETS["crashes"], since="2023-01-01", watermark=None) == "crash_date >= '2023-01-01T00:00:00'"
+    assert build_where(DATASETS["aadt"], since=None, watermark=None) is None
+
+
+def test_dedup_keeps_latest_download_and_speed_zero_is_missing():
+    old = _crash("a", "41.88", "-87.63")
+    new = {**_crash("a", "41.88", "-87.63"), "injuries_fatal": "1", "posted_speed_limit": "0"}
+    df = pd.DataFrame([new, old]).astype("string")
+    # La versión corregida llega en una descarga posterior (part 10 > part 9, no lexicográfico)
+    df["_part"] = pd.Series(["10", "9"], dtype="string")
+    df["_updated_at"] = pd.Series(["2026-10-05T00:00:00.000", "2026-01-01T00:00:00.000"], dtype="string")
+    clean, _, stats = clean_crashes(df)
+    assert len(clean) == 1 and stats["duplicates_removed"] == 1
+    row = clean.iloc[0]
+    assert row["injuries_fatal"] == 1
+    assert pd.isna(row["posted_speed_limit"])
+    assert not {"_part", "_updated_at"} & set(clean.columns)
