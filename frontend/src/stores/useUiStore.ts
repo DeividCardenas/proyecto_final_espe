@@ -11,6 +11,10 @@ interface UiState {
   activeTab: PanelTab;
   panelOpen: boolean;
   drawerOpen: boolean;
+  /** Filtros plegados por defecto: al entrar sólo se ve el mapa y la respuesta principal */
+  filtersOpen: boolean;
+  /** Recorrido guiado de 3 pasos (se abre solo en la primera visita) */
+  tourOpen: boolean;
   selectedCrashId: string | null;
   selectedCoords: [number, number] | null;
   flyOnSelect: boolean;
@@ -24,6 +28,8 @@ interface UiState {
   setTab: (t: PanelTab) => void;
   togglePanel: () => void;
   toggleDrawer: () => void;
+  toggleFilters: () => void;
+  setTourOpen: (v: boolean) => void;
   selectCrash: (id: string | null, coords?: [number, number] | null, fly?: boolean) => void;
   setSimulatorPoint: (p: [number, number] | null) => void;
   setPickingPoint: (v: boolean) => void;
@@ -33,6 +39,8 @@ export const useUiStore = create<UiState>((set) => ({
   activeTab: "segments",
   panelOpen: true,
   drawerOpen: false,
+  filtersOpen: false,
+  tourOpen: false,
   selectedCrashId: null,
   selectedCoords: null,
   flyOnSelect: false,
@@ -49,6 +57,8 @@ export const useUiStore = create<UiState>((set) => ({
   setTab: (activeTab) => set({ activeTab, panelOpen: true }),
   togglePanel: () => set((s) => ({ panelOpen: !s.panelOpen })),
   toggleDrawer: () => set((s) => ({ drawerOpen: !s.drawerOpen })),
+  toggleFilters: () => set((s) => ({ filtersOpen: !s.filtersOpen })),
+  setTourOpen: (tourOpen) => set({ tourOpen }),
   selectCrash: (selectedCrashId, coords = null, fly = false) =>
     set(selectedCrashId
       ? { selectedCrashId, selectedCoords: coords, flyOnSelect: fly, selectedSegment: null }

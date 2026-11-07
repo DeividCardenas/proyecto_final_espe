@@ -3,7 +3,7 @@ import { applyThemeVars, THEME_ORDER, THEMES } from "@/theme/themes";
 
 describe("temas visuales", () => {
   it("define las cuatro pieles con escalas completas", () => {
-    expect(THEME_ORDER).toEqual(["tron", "cyberpunk", "nerv", "classic"]);
+    expect(THEME_ORDER).toEqual(["classic", "tron", "cyberpunk", "nerv"]);
     for (const id of THEME_ORDER) {
       const t = THEMES[id];
       expect(Object.keys(t.slate)).toHaveLength(11);

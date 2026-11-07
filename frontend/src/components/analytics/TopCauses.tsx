@@ -8,7 +8,7 @@ import { RankChart } from "@/components/charts/d3";
 const UNDETERMINED = new Set(["UNABLE TO DETERMINE", "NOT APPLICABLE", "UNKNOWN"]);
 
 /** Ranking de causas contributivas (barras desde cero; la tasa crítica va como nota). */
-export function TopCauses() {
+export function TopCauses({ hero = false }: { hero?: boolean }) {
   const { filters: f, rateFilters: rf, scope, local, composed } = useKpis();
   const { data = [] } = useQuery({
     queryKey: ["causes", f],
@@ -34,6 +34,7 @@ export function TopCauses() {
   };
   return (
     <Card
+      hero={hero}
       title="¿Por qué ocurren?"
       className="col-span-2"
       takeaway={first && total > 0 && (

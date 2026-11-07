@@ -53,14 +53,16 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
   classic: {
     id: "classic",
     name: "Clásico",
-    tagline: "Analítico sobrio",
+    tagline: "Sobrio, recomendado para analizar",
     headerSub: "Riesgo vial geoespacial · Big Data & ML",
     swatch: ["#0f172a", "#06b6d4", "#dc2626"],
     slate: scale(["#f8fafc", "#f1f5f9", "#e2e8f0", "#cbd5e1", "#94a3b8", "#64748b", "#475569", "#334155", "#1e293b", "#0f172a", "#020617"]),
     cyan: scale(["#ecfeff", "#cffafe", "#a5f3fc", "#67e8f9", "#22d3ee", "#06b6d4", "#0891b2", "#0e7490", "#155e75", "#164e63", "#083344"]),
     fonts: { display: "Inter", body: "Inter", mono: "ui-monospace" },
-    severity: ["#38bdf8", "#facc15", "#dc2626"],
-    heatmap: ["#1e3a8a", "#7c3aed", "#db2777", "#f97316", "#fde047"],
+    // Rampa ordenada: gris (bajo) → ámbar (moderado) → rojo saturado sólo para lo crítico
+    severity: ["#94a3b8", "#f59e0b", "#dc2626"],
+    // Densidad: tonos apagados para lo común y cálidos/saturados sólo donde se concentra
+    heatmap: ["#334155", "#64748b", "#b45309", "#f59e0b", "#fde68a"],
     chart: { primary: "#0ea5e9", critical: "#dc2626", series: ["#38bdf8", "#818cf8", "#a78bfa", "#f472b6", "#fb923c", "#facc15", "#4ade80", "#94a3b8"], grid: "#1e293b", axis: "#64748b", tooltipBg: "#0f172a", tooltipBorder: "#334155" },
     map: { background: "", water: "", land: "", building: "", roadMajor: "", roadMinor: "", roadOpacity: 1, label: "", labelHalo: "", boundary: "" },
     cluster: ["#0ea5e9", "#8b5cf6", "#ec4899", "#f97316"],
@@ -118,7 +120,7 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
   },
 };
 
-export const THEME_ORDER: ThemeId[] = ["tron", "cyberpunk", "nerv", "classic"];
+export const THEME_ORDER: ThemeId[] = ["classic", "tron", "cyberpunk", "nerv"];
 
 /** Aplica las variables CSS del tema al documento. */
 export function applyThemeVars(theme: ThemeDef, root: HTMLElement = document.documentElement) {

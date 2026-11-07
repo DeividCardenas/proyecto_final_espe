@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useKpis } from "@/hooks/useKpis";
 import { cn, fmtNumber, fmtPct } from "@/components/ui";
 import type { Kpis } from "@/types/api";
@@ -17,7 +18,11 @@ const toneOf = (r: number | null): Tone => (r === null ? undefined : r > 1.05 ? 
  * las tasas se calculan sobre todos los siniestros de la zona y el periodo (sin los
  * filtros de severidad u obra), para que no salgan al 100% por construcción.
  */
+/** Cifras visibles de entrada; el resto, detrás de «ver más» (mostrar menos para concentrar). */
+const VISIBLE = 3;
+
 export function KpiSummaryCards() {
+  const [all, setAll] = useState(false);
   const { local, city, localRates, cityRates, composed } = useKpis();
   const k = local.data;
   const c = city.data;
@@ -78,8 +83,8 @@ export function KpiSummaryCards() {
     },
   ];
   return (
-    <div className={cn("col-span-2 grid grid-cols-2 gap-2", local.isLoading && "opacity-60")} data-testid="kpi-cards">
-      {items.map((it) => (
+    <div className={cn("col-span-2 grid grid-cols-3 gap-2", local.isLoading && "opacity-60")} data-testid="kpi-cards">
+      {(all ? items : items.slice(0, VISIBLE)).map((it) => (
         <div key={it.label} className="hud-panel rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2">
           <p className="text-[10px] uppercase tracking-wide text-slate-500">{it.label}</p>
           <p className="hud-kpi text-xl font-semibold tabular-nums text-slate-100">{it.value}</p>
@@ -88,8 +93,11 @@ export function KpiSummaryCards() {
           </p>
         </div>
       ))}
+      <button onClick={() => setAll((v) => !v)} className="col-span-3 justify-self-start text-[10px] text-cyan-300 hover:underline">
+        {all ? "ver menos cifras" : `ver ${items.length - VISIBLE} cifras más (lesiones y zona de obra)`}
+      </button>
       {composed && (
-        <p className="col-span-2 text-[10px] leading-snug text-amber-300/90" data-testid="rates-note">
+        <p className="col-span-3 text-[10px] leading-snug text-amber-300/90" data-testid="rates-note">
           Los conteos respetan los filtros de severidad y zona de obra; las tasas y proporciones se calculan sobre
           todos los siniestros de la zona y el periodo, para que sigan siendo comparables.
         </p>

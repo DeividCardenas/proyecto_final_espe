@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { THEMES, type ThemeDef, type ThemeId } from "@/theme/themes";
 
-const STORAGE_KEY = "chicago-road-risk-theme";
+// v2: el tema por defecto pasó a ser Clásico (sobrio); las pieles temáticas quedan como opción
+const STORAGE_KEY = "chicago-road-risk-theme-v2";
 
 function readStored(): ThemeId {
   try {
@@ -10,7 +11,7 @@ function readStored(): ThemeId {
   } catch {
     /* almacenamiento no disponible (modo privado, previsualización) */
   }
-  return "tron";
+  return "classic";
 }
 
 interface ThemeState {

@@ -238,3 +238,20 @@ body {
     animation: none;
   }
 }
+
+/* Tooltip de predicción al pasar por una cuadra */
+.segment-hover {
+  pointer-events: none;
+}
+.segment-hover .maplibregl-popup-content {
+  background: rgb(var(--slate-900) / 0.95);
+  border: 1px solid rgb(var(--slate-700));
+  border-radius: 8px;
+  padding: 6px 9px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+.segment-hover .maplibregl-popup-tip {
+  border-top-color: rgb(var(--slate-900)) !important;
+  border-bottom-color: rgb(var(--slate-900)) !important;
+}

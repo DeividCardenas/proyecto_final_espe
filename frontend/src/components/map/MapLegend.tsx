@@ -19,7 +19,7 @@ export function MapLegend() {
       )}
       {layers.points && (
         <div>
-          <p className="mb-1 font-semibold text-slate-200">Siniestros {zoom < 13 && <span className="text-slate-500">(zoom ≥ 13)</span>}</p>
+          <p className="mb-1 font-semibold text-slate-200">Siniestros {zoom < 13 && <span className="text-slate-500">(acércate para verlos)</span>}</p>
           {(["Bajo", "Moderado", "Crítico"] as const).map((l, i) => (
             <span key={l} className="mr-2 inline-flex items-center gap-1">
               <i className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: SEVERITY_COLORS[i] }} />{l}
