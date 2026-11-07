@@ -5,11 +5,13 @@ import json
 from functools import lru_cache
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pyproj import Transformer
 from starlette.concurrency import run_in_threadpool
 
 from app.core.config import settings
+from app.core.errors import OlapUnavailableError
+from app.core.http_cache import TTLCache, cached_bytes_response, dumps, etag_for
 from app.core.severity import GRID_SIZE_FT
 from app.services.olap import duckdb_engine
 
@@ -25,8 +27,35 @@ def _cell_polygon(gx: int, gy: int) -> list[list[list[float]]]:
     return [[[round(x, 6), round(y, 6)] for x, y in zip(xs, ys)]]
 
 
-@lru_cache(maxsize=4)
-def _grid_geojson(min_crashes: int, mtime: float) -> dict:
+# Respuestas ya serializadas (bytes + ETag) por versión del archivo Gold: FastAPI ya
+# no recorre miles de polígonos con jsonable_encoder en cada petición.
+_bytes_cache = TTLCache(maxsize=48, ttl=3600)
+
+NOT_TRAINED = "Aún no se ha entrenado el modelo por tramo"
+
+
+def _gold_version() -> float:
+    path = Path(settings.DUCKDB_PATH)
+    if not path.exists():
+        raise OlapUnavailableError("Capa Gold (DuckDB) no disponible: ejecute el pipeline ETL", None)
+    return path.stat().st_mtime
+
+
+def _cached(key: tuple, build) -> tuple[bytes, str]:
+    hit = _bytes_cache.get(key)
+    if hit is None:
+        body = dumps(build())
+        hit = (body, etag_for(body))
+        _bytes_cache.set(key, hit)
+    return hit
+
+
+def _require_segments() -> None:
+    if not duckdb_engine.table_exists("gold_segment_risk"):
+        raise HTTPException(status_code=404, detail=NOT_TRAINED)
+
+
+def _grid_geojson(min_crashes: int) -> dict:
     tables = {r["table_name"] for r in duckdb_engine.query("SELECT table_name FROM information_schema.tables")}
     if "gold_grid_ml" in tables:
         rows = duckdb_engine.query(
@@ -62,19 +91,29 @@ def _grid_geojson(min_crashes: int, mtime: float) -> dict:
 
 
 @router.get("/grid", summary="Rejilla de 500 m con riesgo crítico medio predicho (GeoJSON)")
-async def risk_grid(min_crashes: int = Query(10, ge=1, le=1000)) -> dict:
-    path = Path(settings.DUCKDB_PATH)
+async def risk_grid(request: Request, min_crashes: int = Query(10, ge=1, le=1000)) -> Response:
+    def build() -> tuple[bytes, str]:
+        return _cached(("grid", min_crashes, _gold_version()), lambda: _grid_geojson(min_crashes))
+
+    body, etag = await run_in_threadpool(build)
+    return cached_bytes_response(request, body, etag, media_type="application/geo+json", max_age=600)
+
+
+@lru_cache(maxsize=4)
+def _read_report(path: str, mtime: float) -> dict:
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+async def _report(name: str, missing: str) -> dict:
+    path = Path(settings.MODEL_PATH).with_name(name)
     if not path.exists():
-        raise HTTPException(status_code=503, detail="Capa Gold (DuckDB) no disponible")
-    return await run_in_threadpool(_grid_geojson, min_crashes, path.stat().st_mtime)
+        raise HTTPException(status_code=404, detail=missing)
+    return await run_in_threadpool(_read_report, str(path), path.stat().st_mtime)
 
 
 @router.get("/model-metrics", summary="Métricas de evaluación del modelo entrenado")
 async def model_metrics() -> dict:
-    path = Path(settings.MODEL_PATH).with_name("model_report.json")
-    if not path.exists():
-        raise HTTPException(status_code=404, detail="Aún no hay un modelo entrenado")
-    report = json.loads(path.read_text(encoding="utf-8"))
+    report = await _report("model_report.json", "Aún no hay un modelo entrenado")
     winner = report.get("winner")
     m = report.get("models", {}).get(winner, {})
     return {
@@ -98,23 +137,11 @@ SEGMENT_COLUMNS = ("segment_id, lat, lon, crashes, injury_crashes, severe_crashe
                    "bike_crashes, mean_speed, mean_aadt, p_alto, p_medio, p_bajo, risk_class, priority_rank, priority_pct")
 
 
-def _segments(limit: int, min_class: int) -> list[dict]:
-    return duckdb_engine.query(
+def _segments(limit: int, min_class: int) -> dict:
+    _require_segments()
+    rows = duckdb_engine.query(
         f"SELECT {SEGMENT_COLUMNS} FROM gold_segment_risk WHERE risk_class >= ? ORDER BY priority_rank LIMIT ?",
         [min_class, limit])
-
-
-@router.get("/segments", summary="Tramos viales (cuadras) con riesgo anticipado para los próximos 12 meses (GeoJSON)")
-async def risk_segments(
-    limit: int = Query(5_000, ge=1, le=25_000, description="Tramos más prioritarios a devolver"),
-    min_class: int = Query(0, ge=0, le=2, description="Clase mínima: 0 Bajo, 1 Medio, 2 Alto"),
-) -> dict:
-    try:
-        rows = await run_in_threadpool(_segments, limit, min_class)
-    except FileNotFoundError:
-        raise HTTPException(status_code=503, detail="Capa Gold (DuckDB) no disponible")
-    except Exception:
-        raise HTTPException(status_code=404, detail="Aún no se ha entrenado el modelo por tramo")
     return {
         "type": "FeatureCollection",
         "features": [
@@ -127,7 +154,21 @@ async def risk_segments(
     }
 
 
+@router.get("/segments", summary="Tramos viales (cuadras) con riesgo anticipado para los próximos 12 meses (GeoJSON)")
+async def risk_segments(
+    request: Request,
+    limit: int = Query(5_000, ge=1, le=25_000, description="Tramos más prioritarios a devolver"),
+    min_class: int = Query(0, ge=0, le=2, description="Clase mínima: 0 Bajo, 1 Medio, 2 Alto"),
+) -> Response:
+    def build() -> tuple[bytes, str]:
+        return _cached(("segments", limit, min_class, _gold_version()), lambda: _segments(limit, min_class))
+
+    body, etag = await run_in_threadpool(build)
+    return cached_bytes_response(request, body, etag, media_type="application/geo+json", max_age=600)
+
+
 def _segment_distribution(size: int) -> dict:
+    _require_segments()
     n = duckdb_engine.query("SELECT count(*) AS n FROM gold_segment_risk")[0]["n"]
     step = max(1, n // size)
     # Muestra sistemática por rango: conserva la forma de la distribución completa
@@ -137,13 +178,18 @@ def _segment_distribution(size: int) -> dict:
 
 
 @router.get("/segment-distribution", summary="Muestra de P(riesgo Alto) de todas las cuadras (para comparar un tramo)")
-async def segment_distribution(size: int = Query(1_500, ge=100, le=5_000)) -> dict:
-    try:
-        return await run_in_threadpool(_segment_distribution, size)
-    except FileNotFoundError:
-        raise HTTPException(status_code=503, detail="Capa Gold (DuckDB) no disponible")
-    except Exception:
-        raise HTTPException(status_code=404, detail="Aún no se ha entrenado el modelo por tramo")
+async def segment_distribution(request: Request, size: int = Query(1_500, ge=100, le=5_000)) -> Response:
+    def build() -> tuple[bytes, str]:
+        return _cached(("distribution", size, _gold_version()), lambda: _segment_distribution(size))
+
+    body, etag = await run_in_threadpool(build)
+    return cached_bytes_response(request, body, etag, max_age=600)
+
+
+def _segment_known(segment_id: str) -> bool:
+    _require_segments()
+    rows = duckdb_engine.query("SELECT count(*) AS n FROM gold_segment_risk WHERE segment_id = ?", [segment_id])
+    return bool(rows[0]["n"])
 
 
 @router.get("/segment-explain", summary="Probabilidad de un tramo y variables que la explican (modelo por tramo)")
@@ -153,11 +199,14 @@ async def segment_explain(segment_id: str = Query(..., min_length=3, max_length=
     try:
         mtime = model_mtime()
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Aún no se ha entrenado el modelo por tramo")
+        raise HTTPException(status_code=404, detail=NOT_TRAINED) from None
+    # Comprobación barata en la capa Gold antes de recalcular variables en PostGIS
+    if not await run_in_threadpool(_segment_known, segment_id):
+        raise HTTPException(status_code=404, detail="Tramo no encontrado entre los tramos con riesgo publicado")
     try:
         result = await run_in_threadpool(explain_segment, segment_id, mtime)
     except NotImplementedError as exc:
-        raise HTTPException(status_code=501, detail=str(exc))
+        raise HTTPException(status_code=501, detail=str(exc)) from None
     if result is None:
         raise HTTPException(status_code=404, detail="Tramo sin siniestros en la ventana de historia")
     return result
@@ -165,21 +214,21 @@ async def segment_explain(segment_id: str = Query(..., min_length=3, max_length=
 
 @router.get("/segment-model-metrics", summary="Métricas del modelo de riesgo por tramo vial")
 async def segment_model_metrics() -> dict:
-    path = Path(settings.MODEL_PATH).with_name("segment_model_report.json")
-    if not path.exists():
-        raise HTTPException(status_code=404, detail="Aún no se ha entrenado el modelo por tramo")
-    r = json.loads(path.read_text(encoding="utf-8"))
+    r = await _report("segment_model_report.json", NOT_TRAINED)
+    models = r.get("models", {})
+    winner = r.get("winner")
     return {
-        "winner": r["winner"],
+        "winner": winner,
         "selection_metric": r.get("selection_metric"),
-        "unit": r["unit"],
-        "windows": r["windows"],
-        "n_train": r["n_train"],
-        "n_test": r["n_test"],
-        "class_distribution_test": r["class_distribution_test"],
-        "comparison": {k: {**v["temporal_test"], "spatial_cv_auc": v["spatial_cv"]["auc_mean"],
-                           "spatial_cv_variation": v["spatial_cv"]["auc_cv_variation"]}
-                       for k, v in r["models"].items()},
-        "confusion_matrix": r["models"][r["winner"]]["confusion_matrix"],
-        "forecast": r["forecast"],
+        "unit": r.get("unit"),
+        "windows": r.get("windows"),
+        "n_train": r.get("n_train"),
+        "n_test": r.get("n_test"),
+        "class_distribution_test": r.get("class_distribution_test"),
+        "comparison": {k: {**v.get("temporal_test", {}),
+                           "spatial_cv_auc": v.get("spatial_cv", {}).get("auc_mean"),
+                           "spatial_cv_variation": v.get("spatial_cv", {}).get("auc_cv_variation")}
+                       for k, v in models.items()},
+        "confusion_matrix": models.get(winner, {}).get("confusion_matrix"),
+        "forecast": r.get("forecast"),
     }
