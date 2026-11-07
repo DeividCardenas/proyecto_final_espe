@@ -130,6 +130,13 @@ async def model_metrics() -> dict:
         "feature_importance": m.get("feature_importance"),
         "comparison": {a: v.get("test_argmax") for a, v in report.get("models", {}).items()},
         "artifact": report.get("artifact"),
+        # Claves añadidas por el informe del modelo v2 (None si el informe es anterior)
+        "test_decision": m.get("test_decision"),
+        "calibration_critical": {k: v for k, v in (m.get("calibration_critical") or {}).items()
+                                 if k != "reliability"} or None,
+        "windows": report.get("windows"),
+        "ablation_pre_crash_only": report.get("ablation_pre_crash_only"),
+        "selection_metric": report.get("selection_metric"),
     }
 
 
@@ -231,4 +238,9 @@ async def segment_model_metrics() -> dict:
                        for k, v in models.items()},
         "confusion_matrix": models.get(winner, {}).get("confusion_matrix"),
         "forecast": r.get("forecast"),
+        "baselines": r.get("baselines"),
+        "bootstrap_top10_capture": r.get("bootstrap_top10_capture"),
+        "winner_vs_best_baseline": r.get("winner_vs_best_baseline"),
+        "selection": r.get("selection"),
+        "anchor_date": r.get("anchor_date"),
     }
