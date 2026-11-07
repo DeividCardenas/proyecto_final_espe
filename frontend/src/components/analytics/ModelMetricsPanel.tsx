@@ -8,7 +8,8 @@ const GATE_LABELS: Record<string, string> = {
   auc_roc: "AUC-ROC multiclase ≥ 0.70",
   recall_critical: "Recall clase crítica ≥ 0.60",
   precision_critical: "Precisión clase crítica ≥ 0.65",
-  cv_variance: "Variación 5-fold < 5%",
+  cv_variance: "Variación CV espacial < 5%",
+  lift_critical: "Lift clase crítica ≥ 3×",
 };
 
 /** Modelo principal (por tramo) y, plegado, el modelo por siniestro. */
@@ -81,6 +82,9 @@ function CrashModelSection() {
     value: f.importance,
   }));
   const critShare = data.class_distribution?.["Crítico"] ?? null;
+  // Con probabilidades calibradas el argmax casi nunca elige «Crítico»: si la API publica la
+  // regla de decisión (umbral), el recall que se muestra es el de esa regla
+  const decision = data.test_decision;
   return (
     <details className="col-span-2 rounded-xl border border-slate-800 bg-slate-900/60 p-3 [&_summary]:cursor-pointer">
       <summary className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
@@ -88,8 +92,9 @@ function CrashModelSection() {
       </summary>
       <div className="mt-2 grid grid-cols-2 gap-2">
         <Card className="col-span-2"
-          takeaway={<>AUC macro {fmtNumber(data.test.auc_roc_ovr_macro, 2)}; detecta el {fmtPct(data.test.recall_critical, 0)} de los siniestros
-            críticos{critShare !== null && <>, que son sólo el {fmtPct(critShare, 1)} del total</>}.</>}
+          takeaway={<>AUC macro {fmtNumber(data.test.auc_roc_ovr_macro, 2)}; detecta el {fmtPct(decision?.recall_critical ?? data.test.recall_critical, 0)} de los siniestros
+            críticos{critShare !== null && <>, que son sólo el {fmtPct(critShare, 1)} del total</>}
+            {decision?.threshold !== undefined && <> (umbral {fmtNumber(decision.threshold, 2)}{decision.lift !== undefined && <>, lift {fmtNumber(decision.lift, 1)}×</>})</>}.</>}
           context={`Entrenado con ${fmtNumber(data.n_rows)} siniestros · inferencia ${data.artifact?.single_inference_ms ?? "—"} ms`}>
           <ul className="space-y-1 text-[11px]">
             {Object.entries(data.gates ?? {}).map(([k, ok]) => (
