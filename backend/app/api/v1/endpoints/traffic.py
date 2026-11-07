@@ -1,14 +1,14 @@
 """Estaciones de aforo vehicular (AADT) para la capa de círculos proporcionales."""
 from fastapi import APIRouter, Response
 
-from app.core.database import get_pool
+from app.core.database import connection
 
 router = APIRouter()
 
 
 @router.get("/stations", summary="Estaciones de aforo AADT (GeoJSON)")
 async def stations() -> Response:
-    async with get_pool().acquire() as conn:
+    async with connection() as conn:
         body = await conn.fetchval("""
             SELECT json_build_object('type', 'FeatureCollection', 'features', coalesce(json_agg(json_build_object(
                 'type', 'Feature', 'id', id,

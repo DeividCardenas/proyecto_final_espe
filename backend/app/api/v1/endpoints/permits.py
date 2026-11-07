@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from datetime import date
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, HTTPException, Query, Response
 
-from app.core.database import get_pool
+from app.core.database import connection
 from app.schemas.spatial import METRO_BOUNDS
 
 router = APIRouter()
@@ -14,16 +14,18 @@ router = APIRouter()
 @router.get("/active", summary="Obras CDOT activas en una fecha con buffer de 250 m (GeoJSON)")
 async def active_permits(
     on_date: date | None = Query(None, alias="date", description="Fecha de vigencia (por defecto: la más reciente con datos)"),
-    min_lon: float = Query(METRO_BOUNDS["min_lon"]),
-    min_lat: float = Query(METRO_BOUNDS["min_lat"]),
-    max_lon: float = Query(METRO_BOUNDS["max_lon"]),
-    max_lat: float = Query(METRO_BOUNDS["max_lat"]),
+    min_lon: float = Query(METRO_BOUNDS["min_lon"], ge=-180, le=180),
+    min_lat: float = Query(METRO_BOUNDS["min_lat"], ge=-90, le=90),
+    max_lon: float = Query(METRO_BOUNDS["max_lon"], ge=-180, le=180),
+    max_lat: float = Query(METRO_BOUNDS["max_lat"], ge=-90, le=90),
     buffer_meters: float = Query(250, ge=10, le=1000),
     with_buffer: bool = Query(True, description="Incluir polígono de amortiguamiento"),
     limit: int = Query(3_000, ge=1, le=20_000),
 ) -> Response:
+    if min_lon >= max_lon or min_lat >= max_lat:
+        raise HTTPException(status_code=422, detail="BBOX inválido: min debe ser menor que max")
     buffer_ft = buffer_meters * 3.2808333
-    async with get_pool().acquire() as conn:
+    async with connection() as conn:
         if on_date is None:
             on_date = await conn.fetchval(
                 "SELECT least(current_date, max(application_end_date)::date) FROM silver_road_permits")
@@ -33,7 +35,9 @@ async def active_permits(
                 SELECT * FROM silver_road_permits p
                 WHERE p.geom && ST_MakeEnvelope($1, $2, $3, $4, 4326)
                   AND p.street_closure IN ('Full', 'Partial')
-                  AND $5::date BETWEEN p.application_start_date::date AND p.application_end_date::date
+                  -- Sin castear las columnas, para que idx_permits_dates sea utilizable
+                  AND p.application_start_date < ($5::date + 1)
+                  AND p.application_end_date >= $5::date
                 ORDER BY p.application_start_date DESC
                 LIMIT $8
             )
