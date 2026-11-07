@@ -178,9 +178,10 @@ def attach_table(name: str, df: pd.DataFrame, path: str | None = None) -> None:
 # ------------------------------------------------------------------------------
 # Lectura para la API
 # ------------------------------------------------------------------------------
-# Límites por proceso Uvicorn: con varios workers en un contenedor de 2 GB, el
+# Límites por proceso Uvicorn: con 4 workers en un contenedor de 2 GB (4 x 256 MB +
+# ~300 MB de modelo y pandas por proceso), el
 # valor por defecto de DuckDB (80 % de la RAM del host) podría agotar la memoria.
-READ_MEMORY_LIMIT = os.getenv("DUCKDB_MEMORY_LIMIT", "512MB")
+READ_MEMORY_LIMIT = os.getenv("DUCKDB_MEMORY_LIMIT", "256MB")
 READ_THREADS = int(os.getenv("DUCKDB_THREADS", "2"))
 LOCK_RETRIES = 3
 
