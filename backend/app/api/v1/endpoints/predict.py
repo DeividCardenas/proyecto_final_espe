@@ -9,9 +9,10 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Request
 from starlette.concurrency import run_in_threadpool
 
-from app.core.database import get_pool
+from app.core.database import connection
 from app.core.severity import GRID_SIZE_FT
 from app.schemas.prediction import SegmentRiskRequest, SegmentRiskResponse
+from app.services.spatial_context import global_stats
 
 router = APIRouter()
 
@@ -30,9 +31,10 @@ SELECT
     (SELECT json_build_object('volume', t.total_passing_vehicle_volume, 'dist_ft', t.geom_3435 <-> pt.g,
                               'street', t.street)
      FROM silver_traffic_counts t, pt ORDER BY t.geom_3435 <-> pt.g LIMIT 1)::text AS aadt,
-    (SELECT round(avg(total_passing_vehicle_volume)) FROM silver_traffic_counts) AS aadt_mean,
+    -- Misma definición que en el entrenamiento: siniestros con geometría y fecha en la celda
     (SELECT count(*) FROM silver_crashes c, cell
       WHERE c.geom_3435 && ST_MakeEnvelope(cell.x0, cell.y0, cell.x0 + {GRID_SIZE_FT}, cell.y0 + {GRID_SIZE_FT}, 3435)
+        AND c.crash_date IS NOT NULL
     ) AS cell_crashes
 """
 
@@ -42,11 +44,13 @@ SELECT
 async def segment_risk(req: SegmentRiskRequest, request: Request) -> SegmentRiskResponse:
     t0 = time.perf_counter()
     lon, lat = req.coordinates
-    async with get_pool().acquire() as conn:
+    predictor = request.app.state.predictor
+    async with connection() as conn:
         ctx = await conn.fetchrow(CONTEXT_SQL, lon, lat)
+        stats = await global_stats(conn, predictor.meta)
     aadt = json.loads(ctx["aadt"]) if ctx["aadt"] else None
     near = aadt is not None and aadt["dist_ft"] <= AADT_RADIUS_FT
-    years = float(getattr(request.app.state, "data_years", 1.0))
+    years = stats.data_years
     when = (req.when.astimezone(CHICAGO_TZ) if req.when and req.when.tzinfo else req.when) or datetime.now(CHICAGO_TZ)
 
     raw = {
@@ -63,14 +67,13 @@ async def segment_risk(req: SegmentRiskRequest, request: Request) -> SegmentRisk
         "has_pedestrian": req.first_crash_type == "PEDESTRIAN",
         "has_cyclist": req.first_crash_type == "PEDALCYCLIST",
         "num_units": 1 if req.first_crash_type in ("FIXED OBJECT", "OVERTURNED", "OTHER NONCOLLISION") else 2,
-        "aadt_volume": aadt["volume"] if near else ctx["aadt_mean"],
+        "aadt_volume": aadt["volume"] if near else stats.aadt_mean,
         "aadt_imputed": not near,
         "active_workzone": req.active_workzone,
         "grid_density": ctx["cell_crashes"] / years,
         "latitude": lat,
         "longitude": lon,
     }
-    predictor = request.app.state.predictor
     result = await run_in_threadpool(predictor.predict, raw)
     return SegmentRiskResponse(
         **result,
@@ -80,6 +83,7 @@ async def segment_risk(req: SegmentRiskRequest, request: Request) -> SegmentRisk
             "aadt_station_distance_m": round(aadt["dist_ft"] / 3.2808333, 1) if aadt else None,
             "aadt_imputed": raw["aadt_imputed"],
             "cell_crashes_per_year": round(raw["grid_density"], 2),
+            "history_years": round(years, 2),
             "roadway_surface_cond": raw["roadway_surface_cond"],
         },
         model={
