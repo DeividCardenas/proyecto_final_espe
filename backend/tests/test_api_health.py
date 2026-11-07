@@ -1,3 +1,8 @@
+import pytest
+
+pytestmark = pytest.mark.integration
+
+
 def test_health_ok(client):
     r = client.get("/api/v1/health")
     assert r.status_code == 200

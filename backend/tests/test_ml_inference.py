@@ -50,6 +50,7 @@ def test_unit_inference_under_50ms():
     assert proba.shape == (1, 3) and abs(proba.sum() - 1) < 1e-5
 
 
+@pytest.mark.integration
 def test_predict_endpoint_contract(client):
     r = client.post("/api/v1/predict/segment-risk", json=PAYLOAD)
     assert r.status_code == 200
@@ -75,6 +76,7 @@ segment_missing = pytest.mark.skipif(
     reason="modelo por tramo no entrenado")
 
 
+@pytest.mark.integration
 @segment_missing
 def test_segment_model_beats_random_and_validates_out_of_time(client):
     m = client.get("/api/v1/risk/segment-model-metrics").json()
@@ -85,6 +87,7 @@ def test_segment_model_beats_random_and_validates_out_of_time(client):
     assert best["top10_lift"] > 2                      # el 10% priorizado concentra siniestros graves
 
 
+@pytest.mark.integration
 @segment_missing
 def test_segments_geojson_sorted_by_priority(client):
     fc = client.get("/api/v1/risk/segments", params={"limit": 50, "min_class": 2}).json()
@@ -92,6 +95,7 @@ def test_segments_geojson_sorted_by_priority(client):
     assert ranks == sorted(ranks) and all(f["properties"]["risk_class"] == 2 for f in fc["features"])
 
 
+@pytest.mark.integration
 @segment_missing
 def test_segment_explanation_reproduces_published_probability(client):
     fc = client.get("/api/v1/risk/segments", params={"limit": 3}).json()
@@ -106,6 +110,7 @@ def test_segment_explanation_reproduces_published_probability(client):
         assert len(e["factors"]) > 5 and e["factors"][0]["label"]
 
 
+@pytest.mark.integration
 @segment_missing
 def test_segment_explain_unknown_and_distribution(client):
     assert client.get("/api/v1/risk/segment-explain", params={"segment_id": "99999 X NO EXISTE"}).status_code == 404

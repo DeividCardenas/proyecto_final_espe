@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from starlette.concurrency import run_in_threadpool
 
 from app.schemas.spatial import CrashFilters, crash_filters
@@ -13,36 +13,29 @@ router = APIRouter()
 
 
 def _where(f: CrashFilters) -> tuple[str, list]:
-    clauses = ["longitude BETWEEN ? AND ?", "latitude BETWEEN ? AND ?"]
-    params: list = [f.min_lon, f.max_lon, f.min_lat, f.max_lat]
-    if f.start_date:
-        clauses.append("crash_date >= ?")
-        params.append(f.start_date)
-    if f.end_date:
-        clauses.append("crash_date < ?::DATE + 1")
-        params.append(f.end_date)
-    if f.hour_from > 0 or f.hour_to < 23:
-        clauses.append("crash_hour BETWEEN ? AND ?")
-        params += [f.hour_from, f.hour_to]
-    if f.severity:
-        clauses.append(f"severity IN ({', '.join('?' for _ in f.severity)})")
-        params += f.severity
-    if f.workzone_only:
-        clauses.append("active_workzone")
-    return " AND ".join(clauses), params
+    """Mismo filtro que los endpoints PostGIS, en dialecto DuckDB (una sola definición)."""
+    return f.where(alias="", dialect="duckdb")
 
 
 async def _q(sql: str, params: list) -> list[dict]:
-    try:
-        return await run_in_threadpool(duckdb_engine.query, sql, params)
-    except FileNotFoundError:
-        raise HTTPException(status_code=503, detail="Capa Gold (DuckDB) no disponible: ejecute el pipeline ETL")
+    # Los errores (capa Gold ausente u ocupada) se traducen a 503 en app.core.errors
+    return await run_in_threadpool(duckdb_engine.query, sql, params)
 
 
 @router.get("/kpis", summary="Métricas consolidadas de siniestralidad")
 async def kpis(f: CrashFilters = Depends(crash_filters)) -> dict:
     where, params = _where(f)
+    # Una sola consulta: totales, variación interanual (últimos 365 días frente a los
+    # 365 anteriores dentro del filtro) y celdas de 500 m de alto riesgo.
     rows = await _q(f"""
+        WITH f AS MATERIALIZED (SELECT * FROM gold_crash_facts WHERE {where}),
+        m AS (SELECT max(crash_date) AS mx FROM f),
+        hot AS (
+            SELECT count(*) AS n FROM (
+                SELECT grid_x, grid_y FROM f GROUP BY grid_x, grid_y
+                HAVING count(*) >= 30 AND avg(CASE WHEN severity = 2 THEN 1.0 ELSE 0.0 END) >= 0.03
+            )
+        )
         SELECT count(*) AS total_crashes,
                sum(injuries_total) AS total_injuries,
                sum(injuries_fatal) AS fatalities,
@@ -50,29 +43,17 @@ async def kpis(f: CrashFilters = Depends(crash_filters)) -> dict:
                sum(CASE WHEN severity = 2 THEN 1 ELSE 0 END) AS critical_crashes,
                avg(CASE WHEN severity = 2 THEN 1.0 ELSE 0.0 END) AS critical_rate,
                sum(CASE WHEN active_workzone THEN 1 ELSE 0 END) AS workzone_crashes,
-               min(crash_date) AS first_date, max(crash_date) AS last_date
-        FROM gold_crash_facts WHERE {where}
+               min(crash_date) AS first_date, max(crash_date) AS last_date,
+               sum(CASE WHEN crash_date > m.mx - INTERVAL 365 DAY THEN 1 ELSE 0 END) AS last_year,
+               sum(CASE WHEN crash_date <= m.mx - INTERVAL 365 DAY AND crash_date > m.mx - INTERVAL 730 DAY
+                        THEN 1 ELSE 0 END) AS prev_year,
+               any_value(hot.n) AS high_risk_cells
+        FROM f, m, hot
     """, params)
     k = rows[0]
-    # Variación interanual: últimos 365 días frente a los 365 anteriores dentro del filtro
-    trend = await _q(f"""
-        WITH m AS (SELECT max(crash_date) AS mx FROM gold_crash_facts WHERE {where})
-        SELECT sum(CASE WHEN crash_date > mx - INTERVAL 365 DAY THEN 1 ELSE 0 END) AS last_year,
-               sum(CASE WHEN crash_date <= mx - INTERVAL 365 DAY AND crash_date > mx - INTERVAL 730 DAY
-                        THEN 1 ELSE 0 END) AS prev_year
-        FROM gold_crash_facts, m WHERE {where}
-    """, params + params)
-    t = trend[0]
-    k["yoy_change"] = (round((t["last_year"] - t["prev_year"]) / t["prev_year"], 4)
-                       if t["prev_year"] else None)
-    hot = await _q(f"""
-        SELECT count(*) AS n FROM (
-            SELECT grid_x, grid_y FROM gold_crash_facts WHERE {where}
-            GROUP BY grid_x, grid_y
-            HAVING count(*) >= 30 AND avg(CASE WHEN severity = 2 THEN 1.0 ELSE 0.0 END) >= 0.03
-        )
-    """, params)
-    k["high_risk_cells"] = hot[0]["n"]
+    last_year, prev_year = k.pop("last_year"), k.pop("prev_year")
+    k["yoy_change"] = round((last_year - prev_year) / prev_year, 4) if prev_year else None
+    k["high_risk_cells"] = int(k["high_risk_cells"] or 0)
     return k
 
 
