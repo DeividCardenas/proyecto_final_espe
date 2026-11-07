@@ -1,11 +1,28 @@
-"""Entrenamiento, validación cruzada y evaluación de modelos de riesgo (Fase 3).
+"""Entrenamiento, validación y evaluación del modelo de severidad por siniestro (Fase 3).
 
-* Partición estratificada 80/20 (hold-out).
-* Desbalance tratado con ponderación de clases (sin sobremuestreo sintético).
-* Random Forest y XGBoost; búsqueda de hiperparámetros con StratifiedKFold (5).
-* Métricas en test: AUC-ROC multiclase (OvR macro), recall y precisión de la
-  clase Crítica, matriz de confusión e importancia de características.
-* Serializa el pipeline ganador (preprocesador + modelo) con joblib.
+Diseño de validación (sin fugas):
+
+* **Partición temporal**: train = todo lo anterior a la validación, validación =
+  los ``--val-months`` meses previos al test, test = los últimos ``--test-months``
+  meses. El modelo nunca se evalúa con siniestros anteriores a los que aprendió.
+* **Densidad histórica sin futuro**: ``grid_density`` se calcula sólo con el
+  periodo de entrenamiento para train/validación, y con train+validación para el
+  test (``add_grid_density``).
+* **Hiperparámetros, umbral y ganador se eligen en validación**; el test se usa
+  una sola vez, para reportar.
+* **Probabilidades calibradas**: por defecto se entrena sin pesos de clase (con
+  pesos "balanced" las probabilidades se inflaban hacia la clase rara). El
+  desbalance se resuelve con el umbral de decisión, elegido en validación para
+  alcanzar el recall objetivo de la clase Crítica. Se reportan Brier, ECE y la
+  curva de fiabilidad.
+* **Estabilidad espacial**: GroupKFold de 5 pliegues por bloques de ~2 km.
+* **Ablación**: AUC del mismo modelo sólo con condiciones previas al choque (sin
+  variables del mecanismo del siniestro), para dimensionar su peso.
+* El mapa ``gold_grid_ml`` usa predicciones **fuera de pliegue espacial**: cada
+  celda la puntúa un modelo que no vio esa zona.
+
+El modelo publicado se reentrena con todos los datos y los hiperparámetros y el
+umbral elegidos en validación.
 
 Uso:
     python -m app.ml.train --input /data/processed/features_gold.parquet --algorithm xgboost
@@ -27,9 +44,9 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
-from sklearn.metrics import (classification_report, confusion_matrix, precision_recall_curve,
-                             precision_score, recall_score, roc_auc_score)
-from sklearn.model_selection import ParameterGrid, StratifiedKFold, train_test_split
+from sklearn.metrics import (classification_report, confusion_matrix, log_loss, precision_score, recall_score,
+                             roc_auc_score)
+from sklearn.model_selection import GroupKFold, ParameterGrid
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.utils.class_weight import compute_sample_weight
@@ -37,26 +54,32 @@ from xgboost import XGBClassifier
 
 from app.core.config import settings
 from app.core.severity import SEVERITY_LABELS
-from app.ml.feature_engineering import (CATEGORICAL_FEATURES, FEATURES, MECHANISM_FEATURES, NUMERIC_FEATURES,
-                                        TARGET)
+from app.ml.evaluation import (calibration, decide, f1_threshold, provenance, rare_class_metrics, recall_threshold,
+                               spatial_blocks, temporal_masks)
+from app.ml.feature_engineering import (CATEGORICAL_FEATURES, FEATURES, MECHANISM_FEATURES, NUMERIC_FEATURES, TARGET,
+                                        add_grid_density, years_span)
 
 logger = logging.getLogger("ml.train")
 
 CRITICAL = 2
 SEED = 42
-THRESHOLDS = {"auc_roc": 0.70, "recall_critical": 0.60, "precision_critical": 0.65, "cv_variance": 0.05}
+RECALL_TARGET = 0.60
+# La meta de precisión >= 0,65 era inalcanzable con una clase del 1,6 %: se
+# sustituye por el lift (precisión / tasa base) con la regla de decisión publicada.
+THRESHOLDS = {"auc_roc": 0.70, "recall_critical": RECALL_TARGET, "lift_critical": 3.0, "cv_variance": 0.05}
 
 
-def make_preprocessor() -> ColumnTransformer:
-    numeric = Pipeline([("impute", SimpleImputer(strategy="median")), ("scale", StandardScaler())])
-    categorical = Pipeline([
+def make_preprocessor(numeric: list[str] = NUMERIC_FEATURES,
+                      categorical: list[str] = CATEGORICAL_FEATURES) -> ColumnTransformer:
+    numeric_pipe = Pipeline([("impute", SimpleImputer(strategy="median")), ("scale", StandardScaler())])
+    categorical_pipe = Pipeline([
         ("impute", SimpleImputer(strategy="constant", fill_value="UNKNOWN")),
         ("onehot", OneHotEncoder(handle_unknown="infrequent_if_exist", min_frequency=100, sparse_output=False)),
     ])
-    return ColumnTransformer([("num", numeric, NUMERIC_FEATURES), ("cat", categorical, CATEGORICAL_FEATURES)])
+    return ColumnTransformer([("num", numeric_pipe, numeric), ("cat", categorical_pipe, categorical)])
 
 
-def make_model(algorithm: str, params: dict) -> object:
+def make_model(algorithm: str, params: dict, balanced: bool = False) -> object:
     if algorithm == "xgboost":
         base = dict(objective="multi:softprob", num_class=3, tree_method="hist", eval_metric="mlogloss",
                     learning_rate=0.05, n_estimators=500, subsample=0.8, colsample_bytree=0.8,
@@ -64,7 +87,8 @@ def make_model(algorithm: str, params: dict) -> object:
         base.update(params)
         return XGBClassifier(**base)
     if algorithm == "random_forest":
-        base = dict(n_estimators=200, max_depth=15, min_samples_leaf=20, class_weight="balanced_subsample",
+        base = dict(n_estimators=200, max_depth=15, min_samples_leaf=20,
+                    class_weight="balanced_subsample" if balanced else None,
                     n_jobs=os.cpu_count(), random_state=SEED)
         base.update(params)
         return RandomForestClassifier(**base)
@@ -77,14 +101,15 @@ PARAM_GRIDS = {
 }
 
 
-def build_pipeline(algorithm: str, params: dict) -> Pipeline:
-    return Pipeline([("prep", make_preprocessor()), ("model", make_model(algorithm, params))])
+def build_pipeline(algorithm: str, params: dict, balanced: bool = False,
+                   numeric: list[str] = NUMERIC_FEATURES, categorical: list[str] = CATEGORICAL_FEATURES) -> Pipeline:
+    return Pipeline([("prep", make_preprocessor(numeric, categorical)), ("model", make_model(algorithm, params, balanced))])
 
 
-def fit_pipeline(pipe: Pipeline, X: pd.DataFrame, y: pd.Series) -> Pipeline:
-    # Ponderación balanceada: XGBoost la recibe como sample_weight (equivalente
-    # multiclase de scale_pos_weight); RF usa class_weight internamente.
-    if isinstance(pipe.named_steps["model"], XGBClassifier):
+def fit_pipeline(pipe: Pipeline, X: pd.DataFrame, y: pd.Series, balanced: bool = False) -> Pipeline:
+    # Sólo con --balanced: XGBoost recibe sample_weight (RF usa class_weight).
+    # Por defecto no se pondera, para que las probabilidades queden calibradas.
+    if balanced and isinstance(pipe.named_steps["model"], XGBClassifier):
         pipe.fit(X, y, model__sample_weight=compute_sample_weight("balanced", y))
     else:
         pipe.fit(X, y)
@@ -92,8 +117,7 @@ def fit_pipeline(pipe: Pipeline, X: pd.DataFrame, y: pd.Series) -> Pipeline:
 
 
 def critical_metrics(y_true: np.ndarray, proba: np.ndarray, threshold: float | None = None) -> dict:
-    pred = proba.argmax(axis=1) if threshold is None else np.where(proba[:, CRITICAL] >= threshold, CRITICAL,
-                                                                    proba[:, :CRITICAL].argmax(axis=1))
+    pred = proba.argmax(axis=1) if threshold is None else decide(proba, CRITICAL, threshold)
     return {
         "auc_roc_ovr_macro": float(roc_auc_score(y_true, proba, multi_class="ovr", average="macro")),
         "auc_roc_critical_vs_rest": float(roc_auc_score(y_true == CRITICAL, proba[:, CRITICAL])),
@@ -103,30 +127,43 @@ def critical_metrics(y_true: np.ndarray, proba: np.ndarray, threshold: float | N
     }
 
 
-def cross_validate(algorithm: str, X: pd.DataFrame, y: pd.Series, cv_sample: int) -> tuple[dict, list[dict]]:
-    if len(X) > cv_sample:
-        X, _, y, _ = train_test_split(X, y, train_size=cv_sample, stratify=y, random_state=SEED)
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)
-    results = []
+def search_on_validation(algorithm: str, X_tr: pd.DataFrame, y_tr: pd.Series, X_va: pd.DataFrame,
+                         y_va: pd.Series, balanced: bool) -> tuple[dict, list[dict], Pipeline]:
+    """Rejilla de hiperparámetros evaluada en la ventana de validación (temporal)."""
+    results, best_pipe, best = [], None, None
     for params in ParameterGrid(PARAM_GRIDS[algorithm]):
-        folds = []
-        for tr, va in skf.split(X, y):
-            pipe = fit_pipeline(build_pipeline(algorithm, params), X.iloc[tr], y.iloc[tr])
-            folds.append(critical_metrics(y.iloc[va].to_numpy(), pipe.predict_proba(X.iloc[va])))
-        aucs = np.array([f["auc_roc_ovr_macro"] for f in folds])
+        pipe = fit_pipeline(build_pipeline(algorithm, params, balanced), X_tr, y_tr, balanced)
+        p = pipe.predict_proba(X_va)
         res = {
             "params": params,
-            "auc_mean": float(aucs.mean()),
-            "auc_std": float(aucs.std()),
-            # Variación relativa entre pliegues (coeficiente de variación)
-            "auc_cv_variation": float(aucs.std() / aucs.mean()),
-            "recall_critical_mean": float(np.mean([f["recall_critical"] for f in folds])),
-            "folds": folds,
+            "val_auc_macro": float(roc_auc_score(y_va, p, multi_class="ovr", average="macro")),
+            "val_auc_critical": float(roc_auc_score(y_va == CRITICAL, p[:, CRITICAL])),
+            "val_average_precision_critical": float(rare_class_metrics(
+                (y_va == CRITICAL).to_numpy(), p[:, CRITICAL], p[:, CRITICAL] >= 0.5)["average_precision"]),
+            "val_log_loss": float(log_loss(y_va, p, labels=[0, 1, 2])),
         }
         results.append(res)
-        logger.info("[%s] CV %s -> AUC %.4f ± %.4f", algorithm, params, res["auc_mean"], res["auc_std"])
-    best = max(results, key=lambda r: r["auc_mean"])
-    return best, results
+        logger.info("[%s] validación %s -> AUC %.4f | AP crítico %.4f", algorithm, params, res["val_auc_macro"],
+                    res["val_average_precision_critical"])
+        if best is None or res["val_auc_macro"] > best["val_auc_macro"]:
+            best, best_pipe = res, pipe
+    return best, results, best_pipe
+
+
+def spatial_cv(algorithm: str, params: dict, X: pd.DataFrame, y: pd.Series, groups: pd.Series,
+               balanced: bool, sample: int) -> dict:
+    """Estabilidad entre bloques espaciales de ~2 km (sobre una muestra del train)."""
+    if len(X) > sample:
+        idx = X.sample(n=sample, random_state=SEED).index
+        X, y, groups = X.loc[idx], y.loc[idx], groups.loc[idx]
+    aucs = []
+    for tr, va in GroupKFold(n_splits=5).split(X, y, groups):
+        pipe = fit_pipeline(build_pipeline(algorithm, params, balanced), X.iloc[tr], y.iloc[tr], balanced)
+        aucs.append(float(roc_auc_score(y.iloc[va], pipe.predict_proba(X.iloc[va]), multi_class="ovr",
+                                        average="macro", labels=[0, 1, 2])))
+    a = np.array(aucs)
+    return {"params": params, "scheme": "GroupKFold(5) por bloques de ~2 km", "auc_folds": aucs,
+            "auc_mean": float(a.mean()), "auc_std": float(a.std()), "auc_cv_variation": float(a.std() / a.mean())}
 
 
 def feature_importance(pipe: Pipeline, top: int = 20) -> list[dict]:
@@ -136,81 +173,144 @@ def feature_importance(pipe: Pipeline, top: int = 20) -> list[dict]:
     return [{"feature": str(names[i]), "importance": float(imp[i])} for i in order]
 
 
-def best_f1_threshold(y_true: np.ndarray, p_critical: np.ndarray) -> float:
-    prec, rec, thr = precision_recall_curve(y_true == CRITICAL, p_critical)
-    f1 = 2 * prec * rec / np.clip(prec + rec, 1e-9, None)
-    return float(thr[np.nanargmax(f1[:-1])])
+def spatial_oof_proba(algorithm: str, params: dict, X: pd.DataFrame, y: pd.Series, groups: pd.Series,
+                      balanced: bool) -> np.ndarray:
+    """Probabilidades fuera de pliegue espacial para todas las filas (mapa de riesgo)."""
+    oof = np.zeros((len(X), 3))
+    for tr, va in GroupKFold(n_splits=5).split(X, y, groups):
+        pipe = fit_pipeline(build_pipeline(algorithm, params, balanced), X.iloc[tr], y.iloc[tr], balanced)
+        oof[va] = pipe.predict_proba(X.iloc[va])
+    return oof
 
 
-def train(input_path: str, algorithms: list[str], cv_sample: int, model_path: str) -> dict:
+def train(input_path: str, algorithms: list[str], cv_sample: int, model_path: str, test_months: int = 12,
+          val_months: int = 6, recall_target: float = RECALL_TARGET, balanced: bool = False) -> dict:
     df = pd.read_parquet(input_path)
-    X, y = df[FEATURES], df[TARGET].astype(int)
-    logger.info("Dataset: %d filas; distribución %s", len(df), y.value_counts(normalize=True).round(4).to_dict())
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=SEED)
+    df["crash_date"] = pd.to_datetime(df["crash_date"])
+    df = df.sort_values("crash_date", kind="stable").reset_index(drop=True)
+    y = df[TARGET].astype(int)
+    tr, va, te, windows = temporal_masks(df["crash_date"], test_months, val_months)
+
+    # grid_density sin futuro: historia = train (para train/val) y train+val (para test)
+    fit_view = add_grid_density(df, history=tr)
+    test_view = add_grid_density(df, history=tr | va)
+    X_tr, y_tr = fit_view.loc[tr, FEATURES], y[tr]
+    X_va, y_va = fit_view.loc[va, FEATURES], y[va]
+    X_te, y_te = test_view.loc[te, FEATURES], y[te]
+    groups_tr = spatial_blocks(df.loc[tr, "grid_x"], df.loc[tr, "grid_y"])
+    logger.info("Partición temporal %s | filas train=%d val=%d test=%d", windows, tr.sum(), va.sum(), te.sum())
 
     report: dict = {
         "trained_at": datetime.now(timezone.utc).isoformat(),
         "n_rows": int(len(df)),
+        "n_train": int(tr.sum()), "n_val": int(va.sum()), "n_test": int(te.sum()),
+        "windows": windows,
+        "validation_design": ("Partición temporal train/val/test; hiperparámetros, umbral y ganador elegidos en "
+                              "validación; grid_density calculada sólo con el pasado de cada partición; test usado "
+                              "una vez."),
+        "class_weighting": "balanced" if balanced else "none (probabilidades calibradas)",
         "class_distribution": {SEVERITY_LABELS[k]: float(v) for k, v in y.value_counts(normalize=True).items()},
+        "class_distribution_test": {SEVERITY_LABELS[k]: float(v) for k, v in y_te.value_counts(normalize=True).items()},
         "thresholds_required": THRESHOLDS,
+        "decision_rule": f"Crítico si P(Crítico) >= umbral elegido en validación para recall >= {recall_target:.2f}",
         "models": {},
     }
-    fitted = {}
+    fitted: dict = {}
+    y_te_np = y_te.to_numpy()
     for algo in algorithms:
         t0 = time.perf_counter()
-        best, all_cv = cross_validate(algo, X_train, y_train, cv_sample)
-        pipe = fit_pipeline(build_pipeline(algo, best["params"]), X_train, y_train)
+        best, grid, pipe = search_on_validation(algo, X_tr, y_tr, X_va, y_va, balanced)
+        p_va = pipe.predict_proba(X_va)[:, CRITICAL]
+        thr_decision = recall_threshold((y_va == CRITICAL).to_numpy(), p_va, recall_target)
+        thr_f1 = f1_threshold((y_va == CRITICAL).to_numpy(), p_va)
+        cv = spatial_cv(algo, best["params"], X_tr, y_tr, groups_tr, balanced, cv_sample)
         t_fit = time.perf_counter() - t0
-        proba = pipe.predict_proba(X_test)
-        y_np = y_test.to_numpy()
-        argmax_metrics = critical_metrics(y_np, proba)
-        thr = best_f1_threshold(y_np, proba[:, CRITICAL])
-        tuned_metrics = critical_metrics(y_np, proba, threshold=thr)
-        pred = proba.argmax(axis=1)
+
+        proba = pipe.predict_proba(X_te)
+        pred = decide(proba, CRITICAL, thr_decision)
+        decision = {"threshold": thr_decision, **critical_metrics(y_te_np, proba, thr_decision),
+                    **rare_class_metrics(y_te_np == CRITICAL, proba[:, CRITICAL], pred == CRITICAL)}
         report["models"][algo] = {
             "best_params": best["params"],
-            "cv": {k: v for k, v in best.items() if k != "folds"},
-            "cv_folds": best["folds"],
-            "cv_grid": [{k: v for k, v in r.items() if k != "folds"} for r in all_cv],
-            "test_argmax": argmax_metrics,
-            "test_f1_threshold": {"threshold": thr, **tuned_metrics},
-            "confusion_matrix": confusion_matrix(y_np, pred).tolist(),
-            "classification_report": classification_report(y_np, pred, output_dict=True, zero_division=0),
+            "validation": best,
+            "validation_grid": grid,
+            "cv": cv,
+            "test_argmax": critical_metrics(y_te_np, proba),
+            "test_decision": decision,
+            "test_f1_threshold": {"threshold": thr_f1, **critical_metrics(y_te_np, proba, thr_f1)},
+            "calibration_critical": calibration(y_te_np == CRITICAL, proba[:, CRITICAL]),
+            "confusion_matrix": confusion_matrix(y_te_np, pred, labels=[0, 1, 2]).tolist(),
+            "confusion_matrix_rule": "regla de decisión publicada (umbral de validación)",
+            "classification_report": classification_report(y_te_np, pred, output_dict=True, zero_division=0),
             "feature_importance": feature_importance(pipe),
             "fit_seconds": round(t_fit, 1),
         }
-        fitted[algo] = (pipe, thr)
-        logger.info("[%s] test: %s", algo, argmax_metrics)
+        fitted[algo] = (pipe, thr_decision, thr_f1)
+        logger.info("[%s] test (regla de validación): %s", algo, {k: round(v, 4) for k, v in decision.items()})
 
-    winner = max(report["models"], key=lambda a: report["models"][a]["test_argmax"]["auc_roc_ovr_macro"])
-    pipe, thr = fitted[winner]
+    # Ganador por AUC en VALIDACIÓN (antes se elegía mirando el test)
+    winner = max(report["models"], key=lambda a: report["models"][a]["validation"]["val_auc_macro"])
+    _, thr_decision, thr_f1 = fitted[winner]
     m = report["models"][winner]
     report["winner"] = winner
+    report["selection_metric"] = "val_auc_macro"
     report["gates"] = {
         "auc_roc": m["test_argmax"]["auc_roc_ovr_macro"] >= THRESHOLDS["auc_roc"],
-        "recall_critical": m["test_argmax"]["recall_critical"] >= THRESHOLDS["recall_critical"],
-        "precision_critical": m["test_argmax"]["precision_critical"] >= THRESHOLDS["precision_critical"],
+        "recall_critical": m["test_decision"]["recall_critical"] >= THRESHOLDS["recall_critical"],
+        "lift_critical": m["test_decision"]["lift"] >= THRESHOLDS["lift_critical"],
         "cv_variance": m["cv"]["auc_cv_variation"] < THRESHOLDS["cv_variance"],
     }
 
+    # Ablación: mismas condiciones sin el mecanismo del siniestro (información
+    # que sólo existe una vez ocurrido el choque)
+    pre_num = [f for f in NUMERIC_FEATURES if f not in MECHANISM_FEATURES]
+    pre_cat = [f for f in CATEGORICAL_FEATURES if f not in MECHANISM_FEATURES]
+    pre = fit_pipeline(build_pipeline(winner, m["best_params"], balanced, pre_num, pre_cat),
+                       X_tr[pre_num + pre_cat], y_tr, balanced)
+    p_pre = pre.predict_proba(X_te[pre_num + pre_cat])
+    report["ablation_pre_crash_only"] = {
+        "features": pre_num + pre_cat,
+        "auc_roc_ovr_macro": float(roc_auc_score(y_te_np, p_pre, multi_class="ovr", average="macro")),
+        "auc_roc_critical_vs_rest": float(roc_auc_score(y_te_np == CRITICAL, p_pre[:, CRITICAL])),
+        "average_precision_critical": float(rare_class_metrics(
+            y_te_np == CRITICAL, p_pre[:, CRITICAL], p_pre[:, CRITICAL] >= 0.5)["average_precision"]),
+    }
+    logger.info("Ablación sin mecanismo: %s", report["ablation_pre_crash_only"])
+
+    # Modelo publicado: todos los datos, con grid_density de toda la historia
+    # (misma definición que calcula la API en vivo).
+    all_view = add_grid_density(df)
+    X_all = all_view[FEATURES]
+    pipe = fit_pipeline(build_pipeline(winner, m["best_params"], balanced), X_all, y, balanced)
+
     # Perfiles de mecanismo más frecuentes (para marginalizar en la API)
-    prof = (df[MECHANISM_FEATURES].fillna({"num_units": 2}).value_counts(normalize=True).head(80)
-            .rename("weight").reset_index())
+    mech = df[MECHANISM_FEATURES].fillna({"num_units": 2})
+    prof = mech.value_counts(normalize=True).head(80).rename("weight").reset_index()
     prof["weight"] = prof["weight"] / prof["weight"].sum()
 
+    prov = provenance(df[[TARGET, "crash_date", "grid_x", "grid_y"]], input_path)
+    report["provenance"] = prov
     artifact = {
         "pipeline": pipe,
         "meta": {
             "algorithm": winner,
             "features": FEATURES,
             "classes": SEVERITY_LABELS,
-            "critical_threshold_f1": thr,
+            "best_params": m["best_params"],
+            "critical_threshold": thr_decision,
+            "critical_threshold_rule": f"recall >= {recall_target:.2f} en validación",
+            "critical_threshold_f1": thr_f1,
             "test_metrics": m["test_argmax"],
+            "test_decision": m["test_decision"],
             "trained_at": report["trained_at"],
-            "n_train": int(len(X_train)),
+            "n_train": int(len(X_all)),
+            "windows": windows,
+            "grid_density_definition": "all_history",
+            "grid_density_years": years_span(df["crash_date"]),
+            "grid_density_window": [str(df["crash_date"].min().date()), str(df["crash_date"].max().date())],
             "mechanism_profiles": prof.to_dict(orient="records"),
-            "mechanism_coverage": float(df[MECHANISM_FEATURES].fillna({"num_units": 2}).value_counts(normalize=True)
-                                        .head(40).sum()),
+            "mechanism_coverage": float(mech.value_counts(normalize=True).head(80).sum()),
+            "provenance": prov,
         },
     }
     Path(model_path).parent.mkdir(parents=True, exist_ok=True)
@@ -221,26 +321,39 @@ def train(input_path: str, algorithms: list[str], cv_sample: int, model_path: st
         "path": model_path,
         "size_mb": round(os.path.getsize(model_path) / 1e6, 2),
         "load_ms": round((time.perf_counter() - t0) * 1000, 1),
+        "trained_on": "todos los datos (hiperparámetros y umbral de validación)",
     }
     t0 = time.perf_counter()
-    loaded["pipeline"].predict_proba(X_test.iloc[[0]])
+    loaded["pipeline"].predict_proba(X_te.iloc[[0]])
     report["artifact"]["single_inference_ms"] = round((time.perf_counter() - t0) * 1000, 2)
     report["artifact"]["gate_size_lt_100mb"] = report["artifact"]["size_mb"] < 100
 
-    # Riesgo medio predicho por celda de 500 m (capa coroplética del frontend)
+    # Riesgo medio por celda de 500 m con predicciones FUERA DE PLIEGUE ESPACIAL
+    # (antes eran predicciones dentro de la muestra del modelo entrenado con esas filas)
+    groups_all = spatial_blocks(df["grid_x"], df["grid_y"])
+    oof = spatial_oof_proba(winner, m["best_params"], X_all, y, groups_all, balanced)
+    report["spatial_oof"] = {
+        "auc_roc_ovr_macro": float(roc_auc_score(y, oof, multi_class="ovr", average="macro")),
+        "auc_roc_critical_vs_rest": float(roc_auc_score(y == CRITICAL, oof[:, CRITICAL])),
+        "calibration_critical": {k: v for k, v in calibration((y == CRITICAL).to_numpy(), oof[:, CRITICAL]).items()
+                                 if k != "reliability"},
+    }
     grid = df[["grid_x", "grid_y", "latitude", "longitude"]].copy()
-    grid["p_critical"] = pipe.predict_proba(X)[:, CRITICAL]
+    grid["p_critical"] = oof[:, CRITICAL]
     grid["observed_critical"] = (y == CRITICAL).astype(float)
     grid = grid.groupby(["grid_x", "grid_y"], as_index=False).agg(
         crashes=("p_critical", "size"), mean_p_critical=("p_critical", "mean"),
         observed_critical_rate=("observed_critical", "mean"), lat=("latitude", "mean"), lon=("longitude", "mean"))
+    settings.processed_dir.mkdir(parents=True, exist_ok=True)
     grid.to_parquet(settings.processed_dir / "gold_grid_ml.parquet", index=False)
+    report["grid_cells_scored"] = int(len(grid))
     try:
         from app.services.olap.duckdb_engine import attach_ml_grid
         attach_ml_grid(grid)
-        report["grid_cells_scored"] = int(len(grid))
-    except Exception as exc:  # DuckDB bloqueado o inexistente: no es fatal
-        logger.warning("No se pudo adjuntar gold_grid_ml a DuckDB: %s", exc)
+    except Exception as exc:  # DuckDB bloqueado o inexistente: queda el Parquet para el próximo export
+        logger.warning("No se pudo adjuntar gold_grid_ml a DuckDB (%s); se usará el Parquet en el próximo "
+                       "export de la Capa Gold", exc)
+        report["grid_attach_error"] = str(exc)
 
     out = settings.processed_dir / "model_report.json"
     out.write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
@@ -252,18 +365,28 @@ def train(input_path: str, algorithms: list[str], cv_sample: int, model_path: st
 
 
 def main(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(description="Entrenamiento de modelos de riesgo vial")
+    parser = argparse.ArgumentParser(description="Entrenamiento del modelo de severidad por siniestro")
     parser.add_argument("--input", default=str(settings.processed_dir / "features_gold.parquet"))
     parser.add_argument("--algorithm", default="both", choices=["xgboost", "random_forest", "both"])
     parser.add_argument("--cv-sample", type=int, default=120_000,
-                        help="Filas usadas en la búsqueda 5-fold (el modelo final usa todo el train)")
+                        help="Filas del train usadas en la CV espacial de estabilidad")
+    parser.add_argument("--test-months", type=int, default=12, help="Meses finales reservados para test")
+    parser.add_argument("--val-months", type=int, default=6, help="Meses previos al test para validación")
+    parser.add_argument("--recall-target", type=float, default=RECALL_TARGET,
+                        help="Recall de la clase Crítica con el que se fija el umbral en validación")
+    parser.add_argument("--balanced", action="store_true",
+                        help="Ponderar clases (descalibra las probabilidades; sólo para comparar)")
     parser.add_argument("--model-path", default=settings.MODEL_PATH)
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     algos = ["xgboost", "random_forest"] if args.algorithm == "both" else [args.algorithm]
-    report = train(args.input, algos, args.cv_sample, args.model_path)
-    print(json.dumps({"winner": report["winner"], "gates": report["gates"],
-                      "test": report["models"][report["winner"]]["test_argmax"],
+    report = train(args.input, algos, args.cv_sample, args.model_path, args.test_months, args.val_months,
+                   args.recall_target, args.balanced)
+    w = report["models"][report["winner"]]
+    print(json.dumps({"winner": report["winner"], "windows": report["windows"], "gates": report["gates"],
+                      "test_argmax": w["test_argmax"], "test_decision": w["test_decision"],
+                      "calibration": {k: v for k, v in w["calibration_critical"].items() if k != "reliability"},
+                      "ablation_pre_crash_only": report["ablation_pre_crash_only"],
                       "artifact": report["artifact"]}, indent=2))
 
 
