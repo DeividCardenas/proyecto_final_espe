@@ -1,29 +1,42 @@
 import * as Slider from "@radix-ui/react-slider";
 import * as Checkbox from "@radix-ui/react-checkbox";
-import { Check, RotateCcw } from "lucide-react";
+import { useState } from "react";
+import { Check, ChevronDown, RotateCcw, X } from "lucide-react";
 import { format, subDays, subYears } from "date-fns";
-import { useFilterStore } from "@/stores/useFilterStore";
+import { activeFilterCount, useFilterStore } from "@/stores/useFilterStore";
+import { useUiStore } from "@/stores/useUiStore";
 import { useMapStore, type LayerId } from "@/stores/useMapStore";
 import { cn, SEVERITY_LABELS } from "@/components/ui";
 import type { Severity } from "@/types/api";
 import { useTheme } from "@/stores/useThemeStore";
 
-const LAYERS: { id: LayerId; label: string; hint: string }[] = [
-  { id: "heatmap", label: "Mapa de calor", hint: "Teselas vectoriales MVT" },
-  { id: "points", label: "Siniestros individuales", hint: "Visibles desde zoom 13" },
-  { id: "clusters", label: "Clusters dinámicos", hint: "Supercluster en el cliente" },
-  { id: "risk", label: "Riesgo predictivo ML", hint: "Rejilla de 500 m" },
-  { id: "segments", label: "Tramos priorizados", hint: "Riesgo anticipado 12 meses por cuadra" },
-  { id: "permits", label: "Obras viales CDOT", hint: "Cierre total/parcial + 250 m" },
-  { id: "hotspots", label: "Puntos calientes", hint: "DBSCAN en PostGIS" },
-  { id: "aadt", label: "Aforos AADT", hint: "Volumen diario (2006)" },
+interface LayerDef { id: LayerId; label: string; hint: string; tech: string }
+
+/*
+ * Capas en dos niveles: las tres que responden a la pregunta principal (dónde está el
+ * riesgo) siempre visibles; el resto, de contexto, detrás de «Más capas». El detalle
+ * técnico de cada capa queda en el tooltip (title), no en la interfaz.
+ */
+const MAIN_LAYERS: LayerDef[] = [
+  { id: "segments", label: "Riesgo por cuadra", hint: "Predicción para los próximos 12 meses", tech: "Modelo por tramo vial · top 10% de cuadras por P(riesgo Alto)" },
+  { id: "points", label: "Siniestros", hint: "Se ven al acercarte", tech: "Teselas vectoriales MVT · visibles desde zoom 13" },
+  { id: "heatmap", label: "Mapa de calor", hint: "Dónde se concentran", tech: "Densidad ponderada por severidad (teselas MVT)" },
+];
+const MORE_LAYERS: LayerDef[] = [
+  { id: "risk", label: "Riesgo por zona", hint: "Celdas de 500 m", tech: "Rejilla de 500 m con el modelo de severidad" },
+  { id: "hotspots", label: "Puntos calientes", hint: "Grupos de siniestros muy cercanos", tech: "DBSCAN en PostGIS (radio 40 m)" },
+  { id: "clusters", label: "Agrupaciones", hint: "Cuántos siniestros por zona", tech: "Supercluster en el cliente" },
+  { id: "permits", label: "Obras en la vía", hint: "Cierres por obra", tech: "Permisos CDOT con cierre total/parcial + 250 m" },
+  { id: "aadt", label: "Volumen de tráfico", hint: "Vehículos por día", tech: "Aforos AADT de 2006" },
 ];
 
 const iso = (d: Date) => format(d, "yyyy-MM-dd");
 
-function Box({ checked, onChange, color, label }: { checked: boolean; onChange: () => void; color?: string; label: string }) {
+function Box({ checked, onChange, color, label, title }: {
+  checked: boolean; onChange: () => void; color?: string; label: string; title?: string;
+}) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
+    <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-300" title={title}>
       <Checkbox.Root
         checked={checked}
         onCheckedChange={onChange}
@@ -38,11 +51,30 @@ function Box({ checked, onChange, color, label }: { checked: boolean; onChange: 
   );
 }
 
+function LayerList({ items }: { items: LayerDef[] }) {
+  const { layers, toggleLayer } = useMapStore();
+  return (
+    <div className="space-y-2">
+      {items.map((l) => (
+        <div key={l.id}>
+          <Box checked={layers[l.id]} onChange={() => toggleLayer(l.id)} label={l.label} title={l.tech} />
+          <p className="ml-6 text-[10px] text-slate-500">{l.hint}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Panel de filtros y capas: plegado por defecto para que al entrar el mapa sea el protagonista. */
 export function Sidebar() {
   const f = useFilterStore();
   const SEVERITY_COLORS = useTheme().severity;
-  const { layers, toggleLayer } = useMapStore();
+  const layers = useMapStore((s) => s.layers);
+  const { filtersOpen, toggleFilters } = useUiStore();
+  const moreActive = MORE_LAYERS.filter((l) => layers[l.id]).length;
+  const [showMore, setShowMore] = useState(false);
   const today = new Date();
+  if (!filtersOpen) return null;
   const presets: { label: string; start: string | null }[] = [
     { label: "Todo", start: null },
     { label: "1 año", start: iso(subYears(today, 1)) },
@@ -50,9 +82,27 @@ export function Sidebar() {
     { label: "30 días", start: iso(subDays(today, 30)) },
   ];
   const sectionTitle = "hud-title mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500";
+  const active = activeFilterCount(f);
 
   return (
-    <aside className="hud-aside flex w-64 shrink-0 flex-col gap-5 overflow-y-auto border-r border-slate-800 bg-slate-950/85 p-4">
+    <aside className="hud-aside flex w-64 shrink-0 flex-col gap-5 overflow-y-auto border-r border-slate-800 bg-slate-950/85 p-4"
+      aria-label="Filtros y capas" data-testid="filters-panel">
+      <div className="-mb-2 flex items-center justify-between">
+        <p className="text-xs font-semibold text-slate-200">Filtros y capas</p>
+        <button onClick={toggleFilters} aria-label="Cerrar filtros" className="text-slate-500 hover:text-slate-200"><X size={14} /></button>
+      </div>
+
+      <section>
+        <h2 className={sectionTitle}>Capas del mapa</h2>
+        <LayerList items={MAIN_LAYERS} />
+        <button onClick={() => setShowMore((v) => !v)} aria-expanded={showMore || moreActive > 0}
+          className="mt-2 flex items-center gap-1 text-[11px] text-cyan-300 hover:underline">
+          <ChevronDown size={12} className={cn("transition-transform", (showMore || moreActive > 0) && "rotate-180")} />
+          Más capas{moreActive > 0 && ` (${moreActive} activa${moreActive > 1 ? "s" : ""})`}
+        </button>
+        {(showMore || moreActive > 0) && <div className="mt-2"><LayerList items={MORE_LAYERS} /></div>}
+      </section>
+
       <section>
         <h2 className={sectionTitle}>Periodo</h2>
         <div className="mb-2 grid grid-cols-4 gap-1">
@@ -92,7 +142,6 @@ export function Sidebar() {
           <Slider.Thumb className="block h-4 w-4 rounded-full border-2 border-cyan-400 bg-slate-950" aria-label="Hora inicial" />
           <Slider.Thumb className="block h-4 w-4 rounded-full border-2 border-cyan-400 bg-slate-950" aria-label="Hora final" />
         </Slider.Root>
-        <p className="mt-1 text-[10px] text-slate-500">Filtrado en GPU con map.setFilter (sin red)</p>
       </section>
 
       <section>
@@ -106,20 +155,9 @@ export function Sidebar() {
         </div>
       </section>
 
-      <section>
-        <h2 className={sectionTitle}>Capas</h2>
-        <div className="space-y-2">
-          {LAYERS.map((l) => (
-            <div key={l.id}>
-              <Box checked={layers[l.id]} onChange={() => toggleLayer(l.id)} label={l.label} />
-              <p className="ml-6 text-[10px] text-slate-500">{l.hint}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <button onClick={f.reset} className="mt-auto flex items-center justify-center gap-1.5 rounded-lg border border-slate-700 py-1.5 text-xs text-slate-400 hover:bg-slate-800">
-        <RotateCcw size={12} /> Restablecer filtros
+      <button onClick={f.reset} disabled={active === 0}
+        className="mt-auto flex items-center justify-center gap-1.5 rounded-lg border border-slate-700 py-1.5 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-40">
+        <RotateCcw size={12} /> Restablecer filtros{active > 0 && ` (${active})`}
       </button>
     </aside>
   );

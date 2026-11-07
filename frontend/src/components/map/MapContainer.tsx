@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, type ReactNode } from "react";
-import { type GeoJSONSource, type MapGeoJSONFeature, type MapLayerMouseEvent, type Map as MLMap } from "maplibre-gl";
+import { Popup, type GeoJSONSource, type MapGeoJSONFeature, type MapLayerMouseEvent, type Map as MLMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useQuery } from "@tanstack/react-query";
 import { MapProvider } from "@/context/MapContext";
@@ -192,6 +192,37 @@ export function MapContainer({ children }: { children?: ReactNode }) {
   useEffect(() => {
     if (map) map.getCanvas().style.cursor = pickingPoint ? "crosshair" : "";
   }, [map, pickingPoint]);
+
+  // --- Predicción puntual al pasar el cursor por una cuadra (sin abrir el panel) ---
+  useEffect(() => {
+    if (!map || !loaded) return;
+    const hover = new Popup({ closeButton: false, closeOnClick: false, offset: 10, className: "segment-hover", maxWidth: "240px" });
+    const onMove = (e: MapLayerMouseEvent) => {
+      const p = e.features?.[0]?.properties as SegmentProps | undefined;
+      if (!p || pickingRef.current) return;
+      const pct = (v: number) => `${(v * 100).toLocaleString("es", { maximumFractionDigits: 0 })}%`;
+      const box = document.createElement("div");
+      const title = document.createElement("p");
+      title.className = "font-semibold text-slate-100";
+      title.textContent = p.segment_id;
+      const body = document.createElement("p");
+      body.className = "text-slate-300";
+      body.textContent = `${pct(Number(p.p_alto))} de probabilidad de riesgo Alto en 12 meses · prioridad #${Number(p.priority_rank).toLocaleString("es")}`;
+      const hint = document.createElement("p");
+      hint.className = "text-slate-500";
+      hint.textContent = "Clic para ver por qué";
+      box.append(title, body, hint);
+      hover.setLngLat(e.lngLat).setDOMContent(box).addTo(map);
+    };
+    const onLeave = () => hover.remove();
+    map.on("mousemove", SEGMENT_LAYER, onMove);
+    map.on("mouseleave", SEGMENT_LAYER, onLeave);
+    return () => {
+      map.off("mousemove", SEGMENT_LAYER, onMove);
+      map.off("mouseleave", SEGMENT_LAYER, onLeave);
+      hover.remove();
+    };
+  }, [map, loaded]);
 
   // --- Selección bidireccional tabla <-> mapa ---
   useEffect(() => {

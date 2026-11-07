@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { MousePointerClick } from "lucide-react";
 import { useTopSegments } from "@/hooks/useTopSegments";
 import { useMapStore } from "@/stores/useMapStore";
@@ -5,10 +6,17 @@ import { useUiStore } from "@/stores/useUiStore";
 import { Card, cn, fmtNumber, fmtPct } from "@/components/ui";
 import { SegmentExplainCard } from "./SegmentExplainCard";
 
+/** Cuadras visibles de entrada y al desplegar la lista. */
+const TOP_SHORT = 5;
 const TOP_LIST = 10;
 
-/** Modelo por tramo vial: predicción explicada de la cuadra elegida y lista de cuadras a priorizar. */
+/**
+ * Pantalla de entrada: una pregunta («¿dónde intervenir primero?») y su respuesta.
+ * Arriba el hallazgo principal del modelo; debajo las cuadras a priorizar; al elegir una,
+ * su predicción explicada ocupa el lugar del hallazgo.
+ */
 export function SegmentPriorityPanel() {
+  const [expanded, setExpanded] = useState(false);
   const { metrics, segments, limit } = useTopSegments();
   const { focus, selectedSegment, selectSegment } = useUiStore();
   const layers = useMapStore((s) => s.layers);
@@ -16,7 +24,7 @@ export function SegmentPriorityPanel() {
 
   if (metrics.isError) return <p className="text-xs text-slate-400">Aún no se ha entrenado el modelo por tramo.</p>;
   const m = metrics.data;
-  const top = segments.data?.features.slice(0, TOP_LIST) ?? [];
+  const top = segments.data?.features.slice(0, expanded ? TOP_LIST : TOP_SHORT) ?? [];
   const win = m ? m.comparison[m.winner] : null;
 
   return (
@@ -24,12 +32,27 @@ export function SegmentPriorityPanel() {
       {selectedSegment ? (
         <SegmentExplainCard segment={selectedSegment} />
       ) : (
-        <Card className="col-span-2 border-dashed">
-          <p className="flex items-start gap-2 text-[12px] leading-snug text-slate-300">
-            <MousePointerClick size={16} className="mt-0.5 shrink-0 text-cyan-300" />
+        <Card hero className="col-span-2"
+          context={m && win && (
+            <>Validación con el año siguiente al entrenamiento: AUC{" "}
+              {win.auc_roc_ovr_macro.toLocaleString("es", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}, donde 0,5 es azar.
+              Detalle en la sección Modelo.</>
+          )}
+        >
+          {win ? (
+            <p className="text-[15px] font-medium leading-snug text-slate-100">
+              El <b>10% de las cuadras</b> que señaló el modelo concentró el{" "}
+              <span className="hud-kpi text-2xl font-semibold tabular-nums text-red-300">{fmtPct(win.top10_capture_severe, 0)}</span>{" "}
+              de los siniestros graves de 2025: {win.top10_lift.toLocaleString("es", { maximumFractionDigits: 1 })} veces lo esperado
+              si se eligieran al azar. Ahí conviene intervenir primero.
+            </p>
+          ) : (
+            <p className="text-xs text-slate-500">{metrics.isLoading ? "Cargando…" : "Sin métricas del modelo."}</p>
+          )}
+          <p className="mt-2 flex items-start gap-2 text-[12px] leading-snug text-slate-400">
+            <MousePointerClick size={15} className="mt-0.5 shrink-0 text-cyan-300" />
             <span>
-              Haz clic en una cuadra del mapa (o en la lista) para ver su probabilidad de riesgo Alto, cómo se compara
-              con el resto de la ciudad y qué variables la explican.
+              Haz clic en una cuadra del mapa o de la lista para ver por qué es prioritaria.
               {!layers.segments && (
                 <button onClick={() => toggleLayer("segments")} className="ml-1 text-cyan-300 hover:underline">Mostrar cuadras en el mapa</button>
               )}
@@ -38,23 +61,8 @@ export function SegmentPriorityPanel() {
         </Card>
       )}
 
-      {m && win && (
-        <>
-          <div className="hud-panel rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-wide text-slate-500">Top 10% de cuadras capta</p>
-            <p className="hud-kpi text-xl font-semibold tabular-nums text-slate-100">{fmtPct(win.top10_capture_severe, 0)}</p>
-            <p className="text-[10px] leading-snug text-slate-400">de los siniestros graves de 2025 ({win.top10_lift.toLocaleString("es", { maximumFractionDigits: 1 })}× el 10% esperado al azar)</p>
-          </div>
-          <div className="hud-panel rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-wide text-slate-500">AUC año siguiente</p>
-            <p className="hud-kpi text-xl font-semibold tabular-nums text-slate-100">{win.auc_roc_ovr_macro.toLocaleString("es", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-            <p className="text-[10px] leading-snug text-slate-400">0,5 = azar · CV espacial {win.spatial_cv_auc.toLocaleString("es", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (bloques de ~2 km)</p>
-          </div>
-        </>
-      )}
-
       <Card
-        title={`Las ${TOP_LIST} cuadras prioritarias`}
+        title={`Las ${expanded ? TOP_LIST : TOP_SHORT} cuadras prioritarias`}
         className="col-span-2"
         right={
           <button onClick={() => toggleLayer("segments")} className="text-[10px] text-cyan-300 hover:underline">
@@ -89,6 +97,11 @@ export function SegmentPriorityPanel() {
             );
           })}
         </ol>
+        {(segments.data?.features.length ?? 0) > TOP_SHORT && (
+          <button onClick={() => setExpanded((v) => !v)} className="mt-1 text-[10px] text-cyan-300 hover:underline">
+            {expanded ? `ver sólo las ${TOP_SHORT} primeras` : `ver las ${TOP_LIST} primeras`}
+          </button>
+        )}
       </Card>
     </div>
   );

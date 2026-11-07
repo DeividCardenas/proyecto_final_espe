@@ -6,14 +6,14 @@ import { Scatter } from "@/components/charts/d3";
 
 /** Volumen vehicular (AADT, por decil) frente a tasa de siniestros críticos. */
 export function RiskCorrelationPlot() {
-  const { filters: f, scope, local } = useKpis();
+  const { rateFilters: f, scope, localRates, composed } = useKpis();
   const { data = [] } = useQuery({
     queryKey: ["aadt-severity", f],
     queryFn: () => crashService.aadtSeverity(f),
     enabled: !!f.bounds,
     placeholderData: keepPreviousData,
   });
-  const overall = local.data?.critical_rate ?? null;
+  const overall = localRates.data?.critical_rate ?? null;
   const lo = data[0];
   const hi = data[data.length - 1];
   return (
@@ -23,7 +23,7 @@ export function RiskCorrelationPlot() {
       takeaway={lo && hi && data.length > 1 && (
         <>Decil de menos tráfico: {fmtPct(lo.critical_rate, 2)} críticos; decil de más tráfico: {fmtPct(hi.critical_rate, 2)}.</>
       )}
-      context={`Cada punto es un decil de siniestros con aforo AADT a < 500 m (aforos de 2006) · ${scope}`}
+      context={`Cada punto es un decil de siniestros con aforo AADT a < 500 m (aforos de 2006)${composed ? " · tasas sin filtros de severidad ni obra" : ""} · ${scope}`}
     >
       <Scatter
         ariaLabel="Tráfico diario frente a tasa de siniestros críticos"

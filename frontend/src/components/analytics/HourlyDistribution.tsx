@@ -6,7 +6,7 @@ import { Card, fmtNumber } from "@/components/ui";
 import { ColumnChart } from "@/components/charts/d3";
 
 /** Distribución por hora: se resalta la hora pico y se compara con la hora promedio. */
-export function HourlyDistribution() {
+export function HourlyDistribution({ hero = false }: { hero?: boolean }) {
   const { filters: f, scope } = useKpis();
   const setHourRange = useFilterStore((s) => s.setHourRange);
   // La distribución horaria ignora el filtro de horas para mostrar el contexto completo
@@ -22,6 +22,7 @@ export function HourlyDistribution() {
   const peak = data.reduce<(typeof data)[number] | null>((a, d) => (!a || d.crashes > a.crashes ? d : a), null);
   return (
     <Card
+      hero={hero}
       title="¿A qué hora?"
       className="col-span-2"
       right={<span className="text-[10px] text-slate-500">clic = filtrar hora</span>}

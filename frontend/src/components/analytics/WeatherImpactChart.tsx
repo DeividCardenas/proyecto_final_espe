@@ -15,7 +15,8 @@ const MIN_CRASHES = 200;
 
 /** Tasa de siniestros críticos por clima, comparada con la tasa global (posición sobre una escala común). */
 export function WeatherImpactChart() {
-  const { filters: f, scope, local } = useKpis();
+  // Tasa por clima: sobre todos los siniestros (sin severidad ni obra), si no saldría 100%
+  const { rateFilters: f, scope, localRates, composed } = useKpis();
   const { data = [] } = useQuery({
     queryKey: ["weather", f],
     queryFn: () => crashService.weather(f),
@@ -24,17 +25,19 @@ export function WeatherImpactChart() {
   });
   const total = data.reduce((a, d) => a + d.crashes, 0) || 1;
   const rows = data.filter((d) => d.crashes >= MIN_CRASHES).sort((a, b) => b.critical_rate - a.critical_rate);
-  const overall = local.data?.critical_rate ?? null;
+  const overall = localRates.data?.critical_rate ?? null;
   const worst = rows[0];
   return (
     <Card
       title="¿Con qué clima son más graves?"
       className="col-span-2"
-      takeaway={worst && overall ? (
+      takeaway={rows.length < 2 ? (
+        <>En esta zona no hay suficientes siniestros por clima (≥ {MIN_CRASHES}) para comparar; aleja el mapa.</>
+      ) : worst && overall ? (
         <>Con <b>{(WEATHER_ES[worst.weather] ?? worst.weather).toLowerCase()}</b> la tasa crítica es {fmtPct(worst.critical_rate, 2)},{" "}
           {(worst.critical_rate / overall).toLocaleString("es", { maximumFractionDigits: 1 })}× la global.</>
       ) : undefined}
-      context={`% de siniestros con fallecidos o lesiones incapacitantes; climas con ≥ ${MIN_CRASHES} siniestros · ${scope}`}
+      context={`% de siniestros con fallecidos o lesiones incapacitantes; climas con ≥ ${MIN_CRASHES} siniestros${composed ? " · tasas sin filtros de severidad ni obra" : ""} · ${scope}`}
     >
       <RankChart
         ariaLabel="Tasa de siniestros críticos por condición climática"
@@ -42,7 +45,7 @@ export function WeatherImpactChart() {
         data={rows.map((d, i) => ({
           label: WEATHER_ES[d.weather] ?? d.weather,
           value: d.critical_rate,
-          note: `${fmtPct(d.crashes / total, 0)} de los siniestros (${fmtNumber(d.crashes)})`,
+          note: `${d.crashes / total < 0.01 ? "<1%" : fmtPct(d.crashes / total, 0)} de los siniestros (${fmtNumber(d.crashes)})`,
           highlight: i === 0,
         }))}
         format={(v) => fmtPct(v, 2)}

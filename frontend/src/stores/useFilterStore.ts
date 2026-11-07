@@ -36,3 +36,13 @@ export const useFilterStore = create<FilterState>((set) => ({
   setWorkzoneOnly: (workzoneOnly) => set({ workzoneOnly }),
   reset: () => set(initial),
 }));
+
+/** Número de filtros distintos de los valores por defecto (se muestra en el botón «Filtros»). */
+export function activeFilterCount(f: Pick<FilterState, "startDate" | "endDate" | "hourRange" | "severities" | "workzoneOnly">) {
+  return (
+    (f.startDate || f.endDate ? 1 : 0)
+    + (f.hourRange[0] > 0 || f.hourRange[1] < 23 ? 1 : 0)
+    + (f.severities.length < 3 ? 1 : 0)
+    + (f.workzoneOnly ? 1 : 0)
+  );
+}

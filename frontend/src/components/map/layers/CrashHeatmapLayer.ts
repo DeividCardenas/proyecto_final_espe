@@ -5,7 +5,7 @@ export const HEATMAP_LAYER = "crash-heatmap";
 export const POINTS_LAYER = "crash-points";
 export const DETAIL_ZOOM = 13;
 
-export const SEVERITY_COLORS = ["#38bdf8", "#facc15", "#dc2626"] as const;
+export const SEVERITY_COLORS = ["#94a3b8", "#f59e0b", "#dc2626"] as const;
 
 // Severidad crítica pesa 6 veces más que un siniestro leve en la densidad
 const severityWeight: ExpressionSpecification = ["match", ["get", "severity"], 2, 6, 1, 1.5, 0.6];
@@ -34,11 +34,11 @@ export function addCrashTileLayers(map: MLMap, tileUrl: string) {
         "heatmap-color": [
           "interpolate", ["linear"], ["heatmap-density"],
           0, "rgba(0,0,0,0)",
-          0.15, "#1e3a8a",
-          0.35, "#7c3aed",
-          0.55, "#db2777",
-          0.75, "#f97316",
-          1, "#fde047",
+          0.15, "#334155",
+          0.35, "#64748b",
+          0.55, "#b45309",
+          0.75, "#f59e0b",
+          1, "#fde68a",
         ],
       },
     });

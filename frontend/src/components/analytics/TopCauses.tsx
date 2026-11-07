@@ -8,14 +8,22 @@ import { RankChart } from "@/components/charts/d3";
 const UNDETERMINED = new Set(["UNABLE TO DETERMINE", "NOT APPLICABLE", "UNKNOWN"]);
 
 /** Ranking de causas contributivas (barras desde cero; la tasa crítica va como nota). */
-export function TopCauses() {
-  const { filters: f, scope, local } = useKpis();
+export function TopCauses({ hero = false }: { hero?: boolean }) {
+  const { filters: f, rateFilters: rf, scope, local, composed } = useKpis();
   const { data = [] } = useQuery({
     queryKey: ["causes", f],
     queryFn: () => crashService.causes(f),
     enabled: !!f.bounds,
     placeholderData: keepPreviousData,
   });
+  // La tasa crítica de cada causa se calcula sin filtros de severidad ni obra
+  const rates = useQuery({
+    queryKey: ["causes", rf],
+    queryFn: () => crashService.causes(rf),
+    enabled: !!f.bounds && composed,
+    placeholderData: keepPreviousData,
+  });
+  const rateOf = new Map((composed ? rates.data ?? [] : data).map((d) => [d.cause, d.critical_rate]));
   const total = local.data?.total_crashes ?? 0;
   const known = data.filter((d) => !UNDETERMINED.has(d.cause));
   const undetermined = data.filter((d) => UNDETERMINED.has(d.cause)).reduce((a, d) => a + d.crashes, 0);
@@ -26,19 +34,20 @@ export function TopCauses() {
   };
   return (
     <Card
+      hero={hero}
       title="¿Por qué ocurren?"
       className="col-span-2"
       takeaway={first && total > 0 && (
         <>La causa identificada más frecuente es <b>{first.cause.toLowerCase()}</b> ({fmtPct(first.crashes / total, 0)} del total).</>
       )}
-      context={`Causa contributiva principal; ${total > 0 ? `${fmtPct(undetermined / total, 0)} sin causa determinada (excluidos)` : ""} · ${scope}`}
+      context={`Causa contributiva principal; ${total > 0 ? `${fmtPct(undetermined / total, 0)} sin causa determinada (excluidos)` : ""}${composed ? " · tasas sin filtros de severidad ni obra" : ""} · ${scope}`}
     >
       <RankChart
         ariaLabel="Causas contributivas más frecuentes"
         data={known.slice(0, 6).map((d) => ({
           label: label(d.cause),
           value: d.crashes,
-          note: `${fmtPct(d.critical_rate, 1)} críticos`,
+          note: rateOf.has(d.cause) ? `${fmtPct(rateOf.get(d.cause), 1)} críticos` : undefined,
         }))}
         format={(v) => fmtNumber(v)}
       />
