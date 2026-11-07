@@ -51,7 +51,7 @@ export const GUIDE = {
     title: "El resultado principal",
     hace: "Resume en una frase lo que logra el modelo.",
     significa: "Qué parte de los siniestros graves del año siguiente concentró el 10% de cuadras señaladas, y cuántas veces más que si se eligieran al azar.",
-    hizo: "Modelo por tramo vial: regresión logística, elegida frente a Random Forest y XGBoost porque capta más siniestros graves en ese 10%. Se validó en el tiempo (historia de 2024 para anticipar 2025) y en el espacio (bloques de unos 2 km).",
+    hizo: "Modelo por tramo vial: se compararon regresión logística, Random Forest y XGBoost y se eligió el que capta más siniestros graves en ese 10% (el ganador y sus métricas están en la sección Modelo). Se validó en el tiempo, con un año que el modelo no vio al entrenar, y en el espacio (bloques de unos 2 km).",
     side: "left",
   },
   priorityList: {
@@ -67,7 +67,7 @@ export const GUIDE = {
     title: "Por qué esta cuadra",
     hace: "Explica la predicción de la cuadra elegida.",
     significa: "La franja de puntos la compara con todas las cuadras de la ciudad; las barras rojas son las variables que suben el riesgo y las grises, las que lo bajan.",
-    hizo: "Aporte de cada variable de la regresión logística frente a una cuadra típica, calculado por la API (FastAPI).",
+    hizo: "Aporte de cada variable del modelo por tramo frente a una cuadra típica, calculado por la API (FastAPI). El algoritmo usado se indica al pie de la tarjeta.",
     side: "left",
   },
   navFilters: {
@@ -91,7 +91,7 @@ export const GUIDE = {
     title: "Simular",
     hace: "Estima la severidad de un siniestro en el punto que elijas, cambiando velocidad, hora, clima, luz y obras.",
     significa: "Es un escenario hipotético: cómo cambiaría la gravedad esperada si ocurriera un siniestro allí.",
-    hizo: "Modelo XGBoost por siniestro; como no hay un choque concreto, promedia los tipos de choque más frecuentes según su frecuencia histórica.",
+    hizo: "Modelo de severidad por siniestro (el algoritmo aparece junto al resultado); si no eliges un tipo de choque, promedia los más frecuentes según su frecuencia histórica.",
     side: "bottom",
   },
   navModel: {

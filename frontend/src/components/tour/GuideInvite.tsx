@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Compass, X } from "lucide-react";
-import { guideSeen, markGuideSeen, startFullTour } from "./guide";
+import { guideSeen, markGuideSeen, startFullTour } from "./launcher";
 
 /**
  * Invitación discreta de la primera visita: no tapa el mapa ni bloquea nada.
@@ -24,14 +24,14 @@ export function GuideInvite() {
             Un recorrido de un minuto explica cada parte: qué hace, qué significa y cómo se hizo.
           </p>
           <div className="mt-2 flex items-center gap-3">
-            <button onClick={() => { setVisible(false); startFullTour(); }}
+            <button onClick={() => { setVisible(false); void startFullTour(); }}
               className="rounded-lg bg-cyan-600 px-3 py-1 text-xs font-semibold text-white hover:bg-cyan-500">
               Ver recorrido
             </button>
             <button onClick={dismiss} className="text-xs text-slate-400 hover:text-slate-100">Ahora no</button>
           </div>
         </div>
-        <button onClick={dismiss} aria-label="Cerrar invitación" className="text-slate-500 hover:text-slate-200"><X size={14} /></button>
+        <button onClick={dismiss} aria-label="Cerrar invitación" className="text-slate-400 hover:text-slate-200"><X size={14} /></button>
       </div>
     </div>
   );

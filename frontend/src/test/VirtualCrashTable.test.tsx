@@ -29,7 +29,7 @@ describe("toCsv", () => {
   it("escapa comas y comillas y añade coordenadas", () => {
     const rows = makeRows(1);
     rows[0].properties.street = 'AV "X", 5';
-    const csv = toCsv(rows).split("\n");
+    const csv = toCsv(rows).split("\r\n");
     expect(csv[0].endsWith("lon,lat")).toBe(true);
     expect(csv[1]).toContain('"AV ""X"", 5"');
   });

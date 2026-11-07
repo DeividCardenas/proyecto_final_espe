@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import * as Slider from "@radix-ui/react-slider";
-import { useMutation } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useShallow } from "zustand/react/shallow";
 import { MapPin, MousePointerClick } from "lucide-react";
 import { predictionService } from "@/services/predictionService";
 import { useUiStore } from "@/stores/useUiStore";
@@ -8,6 +9,8 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { Card, cn, fmtPct } from "@/components/ui";
 import type { LightingInput, SegmentRiskRequest, WeatherInput } from "@/types/api";
 import { RiskGauge } from "./RiskGauge";
+import { chicagoLocalIso, chicagoNow } from "@/lib/chicagoTime";
+import { modelLabel } from "@/lib/modelLabels";
 
 const WEATHER: { v: WeatherInput; l: string }[] = [
   { v: "CLEAR", l: "Despejado" }, { v: "RAIN", l: "Lluvia" }, { v: "SNOW", l: "Nieve" }, { v: "FOG", l: "Niebla" },
@@ -33,19 +36,21 @@ function Seg<T extends string>({ options, value, onChange }: { options: { v: T; 
 }
 
 export function RiskSimulator() {
-  const { simulatorPoint, setSimulatorPoint, pickingPoint, setPickingPoint } = useUiStore();
+  const { simulatorPoint, setSimulatorPoint, pickingPoint, setPickingPoint } = useUiStore(useShallow((s) => ({
+    simulatorPoint: s.simulatorPoint, setSimulatorPoint: s.setSimulatorPoint, pickingPoint: s.pickingPoint, setPickingPoint: s.setPickingPoint,
+  })));
   const [speed, setSpeed] = useState(30);
   const [weather, setWeather] = useState<WeatherInput>("CLEAR");
   const [lighting, setLighting] = useState<LightingInput>("DAY");
   const [workzone, setWorkzone] = useState(false);
   const [crashType, setCrashType] = useState("");
-  const [hour, setHour] = useState(new Date().getHours());
+  // Fecha y hora de Chicago, no las del navegador: el escenario se evalúa en hora local de Chicago
+  const [today] = useState(() => chicagoNow().date);
+  const [hour, setHour] = useState(() => chicagoNow().hour);
 
   const point = simulatorPoint ?? DEFAULT_POINT;
   // Objeto memoizado: sólo cambia cuando cambia una entrada (evita peticiones en bucle)
   const draft = useMemo<SegmentRiskRequest>(() => {
-    const d = new Date();
-    d.setHours(hour, 0, 0, 0);
     return {
       coordinates: point,
       posted_speed_limit: speed,
@@ -53,15 +58,20 @@ export function RiskSimulator() {
       lighting_condition: lighting,
       active_workzone: workzone,
       first_crash_type: crashType || null,
-      when: d.toISOString(),
+      // Sin zona horaria: la API lo interpreta como hora de Chicago (toISOString() lo pasaba a UTC)
+      when: chicagoLocalIso(today, hour),
     };
-  }, [point, speed, weather, lighting, workzone, crashType, hour]);
+  }, [point, speed, weather, lighting, workzone, crashType, hour, today]);
   const request = useDebounce(draft, 250);
 
-  const mutation = useMutation({ mutationFn: predictionService.segmentRisk });
-  const { mutate } = mutation;
-  useEffect(() => { mutate(request); }, [request, mutate]);
-  const r = mutation.data;
+  // Consulta (no mutación): cachea escenarios repetidos y cancela la petición anterior al mover un control
+  const prediction = useQuery({
+    queryKey: ["segment-risk", request],
+    queryFn: ({ signal }) => predictionService.segmentRisk(request, signal),
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60_000,
+  });
+  const r = prediction.data;
 
   return (
     <div className="space-y-3" data-testid="risk-simulator">
@@ -69,7 +79,7 @@ export function RiskSimulator() {
         <div className="flex items-center gap-2 text-[11px] text-slate-300">
           <MapPin size={14} className="text-cyan-400" />
           <span className="tabular-nums">{point[1].toFixed(5)}, {point[0].toFixed(5)}</span>
-          {!simulatorPoint && <span className="text-slate-500">(Loop por defecto)</span>}
+          {!simulatorPoint && <span className="text-slate-400">(Loop por defecto)</span>}
         </div>
         <div className="mt-2 flex gap-2">
           <button onClick={() => setPickingPoint(!pickingPoint)}
@@ -88,7 +98,7 @@ export function RiskSimulator() {
           <Slider.Thumb className="block h-4 w-4 rounded-full border-2 border-cyan-400 bg-slate-950" aria-label="mph" />
         </Slider.Root>
       </Card>
-      <Card title={`Hora · ${hour}:00`}>
+      <Card title={`Hora en Chicago · ${hour}:00`}>
         <Slider.Root className="relative flex h-5 items-center" min={0} max={23} step={1} value={[hour]}
           onValueChange={(v) => setHour(v[0])} aria-label="Hora">
           <Slider.Track className="relative h-1.5 grow rounded-full bg-slate-800"><Slider.Range className="absolute h-full rounded-full bg-cyan-500" /></Slider.Track>
@@ -108,15 +118,20 @@ export function RiskSimulator() {
         </select>
       </Card>
 
-      <Card title="Riesgo predicho" tourId="sim-result" right={r && <span className="text-[10px] text-slate-500">{r.model.mode === "ml" ? r.model.algorithm : "heurístico"} · {r.inference_ms} ms</span>}>
-        {mutation.isError && <p className="text-xs text-red-400">No se pudo calcular la predicción.</p>}
+      <Card title="Riesgo predicho" tourId="sim-result" right={r && <span className="text-[10px] text-slate-400">{r.model.mode === "ml" ? modelLabel(r.model.algorithm) : "heurístico"} · {r.inference_ms} ms</span>}>
+        {prediction.isError && (
+          <p role="alert" className="text-xs text-amber-300">
+            No se pudo calcular la predicción.{" "}
+            <button onClick={() => void prediction.refetch()} className="underline">Reintentar</button>
+          </p>
+        )}
         {r && (
           <div className="flex flex-col items-center">
             <RiskGauge score={r.critical_score} label={`${r.risk_level} · ${fmtPct(r.critical_score)} crítico`} />
             {r.critical_alert && <p className="mb-1 rounded bg-red-600/20 px-2 py-0.5 text-[11px] text-red-300">Alerta: supera el umbral óptimo del modelo</p>}
             <div className="mt-1 grid w-full grid-cols-3 gap-1 text-center text-[11px]">
               {Object.entries(r.probabilities).map(([k, v]) => (
-                <div key={k} className="rounded bg-slate-800/80 py-1"><p className="text-slate-500">{k}</p><p className="font-semibold tabular-nums text-slate-100">{fmtPct(v)}</p></div>
+                <div key={k} className="rounded bg-slate-800/80 py-1"><p className="text-slate-400">{k}</p><p className="font-semibold tabular-nums text-slate-100">{fmtPct(v)}</p></div>
               ))}
             </div>
             <ul className="mt-3 w-full space-y-1 text-[11px]">
@@ -127,7 +142,7 @@ export function RiskSimulator() {
                 </li>
               ))}
             </ul>
-            <p className="mt-2 w-full text-[10px] text-slate-500">
+            <p className="mt-2 w-full text-[10px] text-slate-400">
               AADT {String(r.context.aadt_volume ?? "—")}{r.context.aadt_imputed ? " (imputado)" : ""} · {String(r.context.cell_crashes_per_year ?? "—")} siniestros/año en la celda
             </p>
           </div>
