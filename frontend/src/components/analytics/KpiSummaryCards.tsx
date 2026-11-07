@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useKpis } from "@/hooks/useKpis";
-import { cn, fmtNumber, fmtPct } from "@/components/ui";
+import { cn, fmtNumber, fmtPct, QueryError } from "@/components/ui";
 import type { Kpis } from "@/types/api";
 
 /** Valor por cada `per` siniestros (null si no hay siniestros). */
@@ -28,6 +28,7 @@ export function KpiSummaryCards() {
   const c = city.data;
   const r = localRates.data;
   const cr = cityRates.data;
+  const failed = [local, city, localRates, cityRates].find((q) => q.isError);
   const yoy = k?.yoy_change ?? null;
   const shareOfCity = ratio(k?.total_crashes, c?.total_crashes);
 
@@ -82,11 +83,14 @@ export function KpiSummaryCards() {
       tone: toneOf(ratio(wz, cityWz)),
     },
   ];
+  if (failed) {
+    return <div className="col-span-2" data-testid="kpi-cards"><QueryError what="las cifras clave" onRetry={() => void failed.refetch()} /></div>;
+  }
   return (
     <div className={cn("col-span-2 grid grid-cols-3 gap-2", local.isLoading && "opacity-60")} data-testid="kpi-cards" data-tour="kpis">
       {(all ? items : items.slice(0, VISIBLE)).map((it) => (
         <div key={it.label} className="hud-panel rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2">
-          <p className="text-[10px] uppercase tracking-wide text-slate-500">{it.label}</p>
+          <p className="text-[10px] uppercase tracking-wide text-slate-400">{it.label}</p>
           <p className="hud-kpi text-xl font-semibold tabular-nums text-slate-100">{it.value}</p>
           <p className={cn("text-[10px] leading-snug text-slate-400", it.tone === "up" && "text-red-300", it.tone === "down" && "text-emerald-300")}>
             {it.compare}

@@ -14,23 +14,10 @@ import { useMapStore } from "@/stores/useMapStore";
 import { useUiStore, type PanelTab } from "@/stores/useUiStore";
 import { describe, GUIDE, type GuideKey } from "./guideContent";
 
-export const GUIDE_SEEN_KEY = "chicago-road-risk-guide-seen";
+import { markGuideSeen } from "./launcher";
 
-export function guideSeen(): boolean {
-  try {
-    return localStorage.getItem(GUIDE_SEEN_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-export function markGuideSeen() {
-  try {
-    localStorage.setItem(GUIDE_SEEN_KEY, "1");
-  } catch {
-    /* preferencia sólo en memoria */
-  }
-}
+// Este módulo (con Driver.js) se carga bajo demanda desde ./launcher
+export { GUIDE_SEEN_KEY, guideSeen, markGuideSeen } from "./launcher";
 
 interface Step {
   key: GuideKey;

@@ -7,12 +7,13 @@ import { Scatter } from "@/components/charts/d3";
 /** Volumen vehicular (AADT, por decil) frente a tasa de siniestros críticos. */
 export function RiskCorrelationPlot() {
   const { rateFilters: f, scope, localRates, composed } = useKpis();
-  const { data = [] } = useQuery({
+  const query = useQuery({
     queryKey: ["aadt-severity", f],
-    queryFn: () => crashService.aadtSeverity(f),
+    queryFn: ({ signal }) => crashService.aadtSeverity(f, signal),
     enabled: !!f.bounds,
     placeholderData: keepPreviousData,
   });
+  const data = query.data ?? [];
   const overall = localRates.data?.critical_rate ?? null;
   const lo = data[0];
   const hi = data[data.length - 1];
@@ -20,6 +21,8 @@ export function RiskCorrelationPlot() {
     <Card
       title="¿Más tráfico, más gravedad?"
       className="col-span-2"
+      error={query.isError}
+      onRetry={() => void query.refetch()}
       takeaway={lo && hi && data.length > 1 && (
         <>Decil de menos tráfico: {fmtPct(lo.critical_rate, 2)} críticos; decil de más tráfico: {fmtPct(hi.critical_rate, 2)}.</>
       )}

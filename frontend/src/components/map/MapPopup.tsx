@@ -4,7 +4,8 @@ import { Popup } from "maplibre-gl";
 import { useQuery } from "@tanstack/react-query";
 import { useMapInstance } from "@/context/MapContext";
 import { crashService } from "@/services/crashService";
-import { SEVERITY_LABELS, severityClass } from "@/components/ui";
+import { QueryError, SEVERITY_LABELS, severityClass } from "@/components/ui";
+import { fmtDateTime } from "@/lib/dates";
 
 interface Props {
   crashId: string;
@@ -16,7 +17,9 @@ interface Props {
 export function MapPopup({ crashId, coordinates, onClose }: Props) {
   const { map } = useMapInstance();
   const node = useMemo(() => document.createElement("div"), []);
-  const { data, isLoading } = useQuery({ queryKey: ["crash", crashId], queryFn: () => crashService.detail(crashId) });
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["crash", crashId], queryFn: ({ signal }) => crashService.detail(crashId, signal), staleTime: Infinity,
+  });
 
   useEffect(() => {
     if (!map) return;
@@ -33,7 +36,9 @@ export function MapPopup({ crashId, coordinates, onClose }: Props) {
 
   return createPortal(
     <div className="text-slate-100 text-xs space-y-2 w-[300px]">
-      {isLoading || !data ? (
+      {isError ? (
+        <QueryError what="el detalle del siniestro" onRetry={() => void refetch()} />
+      ) : isLoading || !data ? (
         <p className="text-slate-400">Cargando detalle…</p>
       ) : (
         <>
@@ -41,7 +46,7 @@ export function MapPopup({ crashId, coordinates, onClose }: Props) {
             <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${severityClass(data.severity)}`}>
               {SEVERITY_LABELS[data.severity]}
             </span>
-            <span className="text-slate-400">{data.date.replace("T", " ")}</span>
+            <span className="text-slate-400">{fmtDateTime(data.date)}</span>
           </div>
           <p className="font-semibold text-sm leading-tight">{data.street || "Ubicación sin dirección"}</p>
           <dl className="grid grid-cols-[92px_1fr] gap-x-3 gap-y-1 [&_dd]:break-words [&_dd]:leading-snug">
@@ -49,10 +54,10 @@ export function MapPopup({ crashId, coordinates, onClose }: Props) {
             <dt className="text-slate-400">Causa</dt><dd>{data.cause ?? "—"}</dd>
             <dt className="text-slate-400">Lesionados</dt><dd>{data.injuries} {data.fatal > 0 && <b className="text-red-400">({data.fatal} fatal)</b>}</dd>
             <dt className="text-slate-400">Clima / luz</dt><dd>{data.weather ?? "—"} / {data.lighting ?? "—"}</dd>
-            <dt className="text-slate-400">Velocidad</dt><dd>{data.speed ?? "—"} mph</dd>
+            <dt className="text-slate-400">Velocidad</dt><dd>{data.speed != null ? `${data.speed} mph` : "—"}</dd>
             <dt className="text-slate-400">AADT</dt><dd>{data.aadt?.toLocaleString("es") ?? "—"}</dd>
             <dt className="text-slate-400">Obra CDOT</dt><dd>{data.workzone ? `Sí (${data.permit})` : "No"}</dd>
-            <dt className="text-slate-400">Unidades</dt><dd>{data.vehicles.length} · {data.people.length} personas</dd>
+            <dt className="text-slate-400">Unidades</dt><dd>{data.vehicles?.length ?? 0} · {data.people?.length ?? 0} personas</dd>
           </dl>
         </>
       )}

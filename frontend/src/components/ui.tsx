@@ -17,8 +17,11 @@ export function severityClass(s: Severity) {
  * Tarjeta del bento grid. `takeaway` es la lectura principal del gráfico (el dato
  * con su comparación) y `context` la unidad, el ámbito y el periodo.
  */
-export function Card({ title, children, className, right, takeaway, context, hero, tourId }: {
+export function Card({ title, children, className, right, takeaway, context, hero, tourId, error, onRetry }: {
   title?: string; children: ReactNode; className?: string; right?: ReactNode; takeaway?: ReactNode; context?: ReactNode;
+  /** La consulta de datos falló: se avisa en vez de mostrar un gráfico vacío */
+  error?: boolean;
+  onRetry?: () => void;
   /** Tarjeta principal del bento: borde de acento y lectura más grande (lo primero que se mira) */
   hero?: boolean;
   /** Ancla para la guía de uso (data-tour) */
@@ -32,10 +35,30 @@ export function Card({ title, children, className, right, takeaway, context, her
           {right}
         </header>
       )}
-      {takeaway && <p className={cn("mb-2 font-medium leading-snug text-slate-100", hero ? "text-[15px]" : "text-[13px]")}>{takeaway}</p>}
-      {children}
-      {context && <p className="mt-1.5 text-[10px] leading-snug text-slate-500">{context}</p>}
+      {error ? (
+        <QueryError onRetry={onRetry} />
+      ) : (
+        <>
+          {takeaway && <p className={cn("mb-2 font-medium leading-snug text-slate-100", hero ? "text-[15px]" : "text-[13px]")}>{takeaway}</p>}
+          {children}
+        </>
+      )}
+      {context && <p className="mt-1.5 text-[10px] leading-snug text-slate-400">{context}</p>}
     </section>
+  );
+}
+
+/** Aviso de error de datos con reintento (distingue «falló la API» de «no hay datos»). */
+export function QueryError({ onRetry, what = "los datos" }: { onRetry?: () => void; what?: string }) {
+  return (
+    <p role="alert" className="flex flex-wrap items-center gap-2 py-2 text-xs text-amber-300">
+      No se pudieron cargar {what}.
+      {onRetry && (
+        <button onClick={onRetry} className="rounded border border-slate-700 px-1.5 py-0.5 text-slate-200 hover:bg-slate-800">
+          Reintentar
+        </button>
+      )}
+    </p>
   );
 }
 
@@ -45,6 +68,6 @@ export function fmtNumber(n: number | null | undefined, digits = 0) {
 }
 
 export function fmtPct(n: number | null | undefined, digits = 1) {
-  if (n === null || n === undefined) return "—";
+  if (n === null || n === undefined || Number.isNaN(n)) return "—";
   return `${(n * 100).toLocaleString("es", { maximumFractionDigits: digits, minimumFractionDigits: digits })}%`;
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import { Popup, type GeoJSONSource, type MapGeoJSONFeature, type MapLayerMouseEvent, type Map as MLMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useQuery } from "@tanstack/react-query";
+import { useShallow } from "zustand/react/shallow";
 import { MapProvider } from "@/context/MapContext";
 import { BASEMAP_STYLE, useMapLibre } from "@/hooks/useMapLibre";
 import { useSpatialFilters } from "@/hooks/useSpatialFilters";
@@ -38,6 +39,11 @@ const LAYER_GROUPS: Record<LayerId, string[]> = {
 };
 const FILTERABLE_LAYERS = [HEATMAP_LAYER, POINTS_LAYER];
 
+const LAYER_NAMES: Partial<Record<LayerId, string>> = {
+  segments: "riesgo por cuadra", risk: "riesgo por zona", permits: "obras en la vía",
+  hotspots: "puntos calientes", aadt: "volumen de tráfico", clusters: "agrupaciones",
+};
+
 function initLayers(map: MLMap, tileUrl: string) {
   // Orden de apilado: rejilla de riesgo < obras < aforos < densidad < puntos < clusters
   const firstSymbol = map.getStyle().layers?.find((l) => l.type === "symbol")?.id;
@@ -49,9 +55,14 @@ function initLayers(map: MLMap, tileUrl: string) {
   addClusterLayers(map);
 }
 
+const tileUrlOf = (s: { startDate: string | null; endDate: string | null; workzoneOnly: boolean }) =>
+  crashService.tileUrl(s.startDate, s.endDate, s.workzoneOnly);
+
+const pct = (v: number) => `${(v * 100).toLocaleString("es", { maximumFractionDigits: 0 })}%`;
+
 export function MapContainer({ children }: { children?: ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { map, loaded, webGlSupported, contextLost } = useMapLibre(containerRef, {
+  const { map, loaded, webGlSupported, contextLost, basemapFallback } = useMapLibre(containerRef, {
     style: BASEMAP_STYLE,
     center: CHICAGO_CENTER,
     zoom: 10.5,
@@ -63,16 +74,24 @@ export function MapContainer({ children }: { children?: ReactNode }) {
 
   const layers = useMapStore((s) => s.layers);
   const setViewport = useMapStore((s) => s.setViewport);
-  const startDate = useFilterStore((s) => s.startDate);
-  const endDate = useFilterStore((s) => s.endDate);
-  const drawerOpen = useUiStore((s) => s.drawerOpen);
-  const { selectedCrashId, selectedCoords, flyOnSelect, selectCrash, pickingPoint, setSimulatorPoint, simulatorPoint,
-    selectSegment, selectedSegment } = useUiStore();
+  const { startDate, endDate, workzoneOnly } = useFilterStore(
+    useShallow((s) => ({ startDate: s.startDate, endDate: s.endDate, workzoneOnly: s.workzoneOnly })),
+  );
+  // Selectores explícitos: el mapa no se vuelve a pintar por cambios de UI que no le afectan
+  const {
+    drawerOpen, selectedCrashId, selectedCoords, flyOnSelect, selectCrash, pickingPoint, setSimulatorPoint,
+    simulatorPoint, selectSegment, selectedSegment, focusPoint,
+  } = useUiStore(useShallow((s) => ({
+    drawerOpen: s.drawerOpen, selectedCrashId: s.selectedCrashId, selectedCoords: s.selectedCoords,
+    flyOnSelect: s.flyOnSelect, selectCrash: s.selectCrash, pickingPoint: s.pickingPoint,
+    setSimulatorPoint: s.setSimulatorPoint, simulatorPoint: s.simulatorPoint, selectSegment: s.selectSegment,
+    selectedSegment: s.selectedSegment, focusPoint: s.focusPoint,
+  })));
 
   // --- Inicialización de capas y sincronización del viewport ---
   useEffect(() => {
     if (!map || !loaded) return;
-    initLayers(map, crashService.tileUrl(useFilterStore.getState().startDate, useFilterStore.getState().endDate));
+    initLayers(map, tileUrlOf(useFilterStore.getState()));
     const sync = () => {
       const b = map.getBounds();
       const c = map.getCenter();
@@ -91,10 +110,10 @@ export function MapContainer({ children }: { children?: ReactNode }) {
     if (map && loaded) applyMapTheme(map, theme);
   }, [map, loaded, theme]);
 
-  // --- Rango de fechas: filtro en servidor sobre las teselas MVT ---
+  // --- Fechas y «sólo zona de obra»: filtro en servidor sobre las teselas MVT ---
   useEffect(() => {
-    if (map && loaded) setCrashTileUrl(map, crashService.tileUrl(startDate, endDate));
-  }, [map, loaded, startDate, endDate]);
+    if (map && loaded) setCrashTileUrl(map, tileUrlOf({ startDate, endDate, workzoneOnly }));
+  }, [map, loaded, startDate, endDate, workzoneOnly]);
 
   // --- Hora y severidad: filtro en GPU (map.setFilter) ---
   useSpatialFilters(map, loaded, FILTERABLE_LAYERS);
@@ -112,15 +131,23 @@ export function MapContainer({ children }: { children?: ReactNode }) {
   // --- Datos de capas opcionales (se piden sólo cuando la capa está activa) ---
   const filters = useQueryFilters();
   const viewport = useViewportCrashes(layers.clusters || drawerOpen);
-  const risk = useQuery({ queryKey: ["risk-grid"], queryFn: crashService.riskGrid, enabled: layers.risk, staleTime: Infinity });
+  const risk = useQuery({
+    queryKey: ["risk-grid"], queryFn: ({ signal }) => crashService.riskGrid(signal), enabled: layers.risk, staleTime: Infinity,
+  });
   const permits = useQuery({
     queryKey: ["permits", filters.bounds, filters.endDate],
-    queryFn: () => crashService.permits(filters.bounds ?? null, filters.endDate),
+    queryFn: ({ signal }) => crashService.permits(filters.bounds ?? null, filters.endDate, signal),
     enabled: layers.permits && !!filters.bounds,
   });
-  const hotspots = useQuery({ queryKey: ["hotspots", filters], queryFn: () => crashService.hotspots(filters), enabled: layers.hotspots && !!filters.bounds });
+  const hotspots = useQuery({
+    queryKey: ["hotspots", filters],
+    queryFn: ({ signal }) => crashService.hotspots(filters, signal),
+    enabled: layers.hotspots && !!filters.bounds,
+  });
   const { segments } = useTopSegments(layers.segments);
-  const aadt = useQuery({ queryKey: ["aadt"], queryFn: crashService.aadt, enabled: layers.aadt, staleTime: Infinity });
+  const aadt = useQuery({
+    queryKey: ["aadt"], queryFn: ({ signal }) => crashService.aadt(signal), enabled: layers.aadt, staleTime: Infinity,
+  });
 
   useEffect(() => { if (map && loaded && viewport.data) setClusterData(map, viewport.data); }, [map, loaded, viewport.data]);
   useEffect(() => { if (map && loaded && risk.data) setRiskData(map, risk.data); }, [map, loaded, risk.data]);
@@ -130,12 +157,8 @@ export function MapContainer({ children }: { children?: ReactNode }) {
   useEffect(() => { if (map && loaded && segments.data) setSegmentData(map, segments.data); }, [map, loaded, segments.data]);
 
   // Enfoque solicitado desde paneles externos (p. ej. lista de tramos prioritarios)
-  const focusPoint = useUiStore((s) => s.focusPoint);
   useEffect(() => {
-    if (map && loaded && focusPoint) {
-      map.flyTo({ center: focusPoint, zoom: 16.5, speed: 1.4 });
-      setHighlight(map, focusPoint);
-    }
+    if (map && loaded && focusPoint) map.flyTo({ center: focusPoint, zoom: 16.5, speed: 1.4 });
   }, [map, loaded, focusPoint]);
 
   // --- Interacción: popup, expansión de clusters, selección para el simulador ---
@@ -153,9 +176,14 @@ export function MapContainer({ children }: { children?: ReactNode }) {
     const onCluster = async (e: MapLayerMouseEvent) => {
       const f = e.features?.[0];
       if (!f || pickingRef.current) return;
-      const src = map.getSource(CLUSTER_SOURCE) as GeoJSONSource;
-      const zoom = await src.getClusterExpansionZoom(f.properties.cluster_id as number);
-      map.easeTo({ center: (f.geometry as GeoJSON.Point).coordinates as [number, number], zoom });
+      const src = map.getSource(CLUSTER_SOURCE) as GeoJSONSource | undefined;
+      try {
+        // Si los datos del cluster cambiaron mientras tanto (el usuario movió el mapa), se ignora
+        const zoom = await src?.getClusterExpansionZoom(f.properties.cluster_id as number);
+        if (zoom !== undefined) map.easeTo({ center: (f.geometry as GeoJSON.Point).coordinates as [number, number], zoom });
+      } catch {
+        /* cluster ya no existe */
+      }
     };
     const onMapClick = (e: MapLayerMouseEvent) => {
       if (pickingRef.current) setSimulatorPoint([Number(e.lngLat.lng.toFixed(6)), Number(e.lngLat.lat.toFixed(6))]);
@@ -197,24 +225,33 @@ export function MapContainer({ children }: { children?: ReactNode }) {
   useEffect(() => {
     if (!map || !loaded) return;
     const hover = new Popup({ closeButton: false, closeOnClick: false, offset: 10, className: "segment-hover", maxWidth: "240px" });
+    // Un único contenido reutilizado: sólo se reescribe el texto al cambiar de cuadra
+    const box = document.createElement("div");
+    const title = document.createElement("p");
+    title.className = "font-semibold text-slate-100";
+    const body = document.createElement("p");
+    body.className = "text-slate-300";
+    const hint = document.createElement("p");
+    hint.className = "text-slate-400";
+    hint.textContent = "Clic para ver por qué";
+    box.append(title, body, hint);
+    hover.setDOMContent(box);
+    let current: string | null = null;
     const onMove = (e: MapLayerMouseEvent) => {
       const p = e.features?.[0]?.properties as SegmentProps | undefined;
       if (!p || pickingRef.current) return;
-      const pct = (v: number) => `${(v * 100).toLocaleString("es", { maximumFractionDigits: 0 })}%`;
-      const box = document.createElement("div");
-      const title = document.createElement("p");
-      title.className = "font-semibold text-slate-100";
-      title.textContent = p.segment_id;
-      const body = document.createElement("p");
-      body.className = "text-slate-300";
-      body.textContent = `${pct(Number(p.p_alto))} de probabilidad de riesgo Alto en 12 meses · prioridad #${Number(p.priority_rank).toLocaleString("es")}`;
-      const hint = document.createElement("p");
-      hint.className = "text-slate-500";
-      hint.textContent = "Clic para ver por qué";
-      box.append(title, body, hint);
-      hover.setLngLat(e.lngLat).setDOMContent(box).addTo(map);
+      if (p.segment_id !== current) {
+        current = p.segment_id;
+        title.textContent = p.segment_id;
+        body.textContent = `${pct(Number(p.p_alto))} de probabilidad de riesgo Alto en 12 meses · prioridad #${Number(p.priority_rank).toLocaleString("es")}`;
+      }
+      hover.setLngLat(e.lngLat);
+      if (!hover.isOpen()) hover.addTo(map);
     };
-    const onLeave = () => hover.remove();
+    const onLeave = () => {
+      current = null;
+      hover.remove();
+    };
     map.on("mousemove", SEGMENT_LAYER, onMove);
     map.on("mouseleave", SEGMENT_LAYER, onLeave);
     return () => {
@@ -224,31 +261,55 @@ export function MapContainer({ children }: { children?: ReactNode }) {
     };
   }, [map, loaded]);
 
-  // --- Selección bidireccional tabla <-> mapa ---
+  // --- Resaltado: una sola fuente de verdad (siniestro, cuadra, punto enfocado o del simulador) ---
   useEffect(() => {
     if (!map || !loaded) return;
-    setHighlight(map, selectedCoords ?? selectedSegment?.coordinates ?? simulatorPoint);
+    setHighlight(map, selectedCoords ?? selectedSegment?.coordinates ?? focusPoint ?? simulatorPoint);
     if (selectedCoords && flyOnSelect) map.flyTo({ center: selectedCoords, zoom: Math.max(map.getZoom(), 16), speed: 1.4 });
-  }, [map, loaded, selectedCoords, flyOnSelect, simulatorPoint, selectedSegment]);
+  }, [map, loaded, selectedCoords, flyOnSelect, simulatorPoint, selectedSegment, focusPoint]);
 
   const closePopup = useCallback(() => selectCrash(null), [selectCrash]);
+
+  // Estado de las capas activas: cargando o con error (antes un fallo dejaba el mapa vacío sin aviso)
+  const layerQueries: [LayerId, { isFetching: boolean; isError: boolean; refetch: () => unknown }][] = [
+    ["segments", segments], ["risk", risk], ["permits", permits], ["hotspots", hotspots], ["aadt", aadt], ["clusters", viewport],
+  ];
+  const active = layerQueries.filter(([id]) => layers[id]);
+  const fetching = active.some(([, q]) => q.isFetching);
+  const failed = active.filter(([, q]) => q.isError);
 
   return (
     <MapProvider value={{ map, loaded }}>
       <div className="relative h-full w-full" data-tour="map">
-        <div ref={containerRef} className="absolute inset-0" data-testid="map-canvas" />
+        <div ref={containerRef} className="absolute inset-0" data-testid="map-canvas" role="region" aria-label="Mapa de riesgo vial de Chicago" />
         {!webGlSupported && (
-          <div className="absolute inset-0 grid place-items-center bg-slate-950 text-slate-300 p-6 text-center">
+          <div className="absolute inset-0 grid place-items-center bg-slate-950 p-6 text-center text-slate-300">
             Este navegador no soporta WebGL2. Active la aceleración por hardware para visualizar el mapa.
           </div>
         )}
-        {contextLost && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 rounded bg-amber-500/90 px-3 py-1 text-xs text-slate-900">
-            Contexto WebGL perdido. Recuperando…
-          </div>
+        {webGlSupported && !loaded && (
+          <div className="absolute inset-0 grid place-items-center text-xs text-slate-400" aria-live="polite">Cargando mapa…</div>
         )}
-        {(viewport.isFetching || permits.isFetching || hotspots.isFetching || risk.isFetching) && (
-          <div className="absolute top-3 right-3 rounded-full bg-slate-900/90 px-3 py-1 text-xs text-cyan-300 border border-slate-700">
+        <div className="pointer-events-none absolute left-1/2 top-3 z-10 flex -translate-x-1/2 flex-col items-center gap-1.5">
+          {contextLost && (
+            <p className="rounded bg-amber-500/90 px-3 py-1 text-xs text-slate-900">Contexto WebGL perdido. Recuperando…</p>
+          )}
+          {basemapFallback && (
+            <p role="status" className="rounded bg-slate-900/95 px-3 py-1 text-xs text-amber-300 border border-amber-700/60" data-testid="basemap-fallback">
+              Mapa base no disponible (sin conexión con CARTO): se muestran sólo los datos del proyecto.
+            </p>
+          )}
+          {failed.length > 0 && (
+            <p role="alert" className="pointer-events-auto flex items-center gap-2 rounded border border-amber-700/60 bg-slate-900/95 px-3 py-1 text-xs text-amber-300">
+              No se pudo cargar: {failed.map(([id]) => LAYER_NAMES[id]).join(", ")}.
+              <button onClick={() => failed.forEach(([, q]) => void q.refetch())} className="rounded border border-slate-700 px-1.5 text-slate-200 hover:bg-slate-800">
+                Reintentar
+              </button>
+            </p>
+          )}
+        </div>
+        {fetching && (
+          <div className="absolute right-3 top-3 rounded-full border border-slate-700 bg-slate-900/90 px-3 py-1 text-xs text-cyan-300" aria-live="polite">
             Cargando datos…
           </div>
         )}

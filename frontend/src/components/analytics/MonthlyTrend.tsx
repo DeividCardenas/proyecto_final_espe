@@ -21,12 +21,13 @@ const daysInMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0).
 export function MonthlyTrend() {
   const { filters: f, scope, city } = useKpis();
   const endDate = useFilterStore((s) => s.endDate);
-  const { data = [] } = useQuery({
+  const query = useQuery({
     queryKey: ["monthly", f],
-    queryFn: () => crashService.monthly(f),
+    queryFn: ({ signal }) => crashService.monthly(f, signal),
     enabled: !!f.bounds,
     placeholderData: keepPreviousData,
   });
+  const data = query.data ?? [];
   const series = data.map((d) => ({ date: monthDate(d.month), value: d.crashes }));
   // Corte de cobertura: último dato de toda la ciudad (no el de la ventana visible)
   // o la fecha final del filtro, lo que llegue antes
@@ -44,6 +45,8 @@ export function MonthlyTrend() {
     <Card
       title="¿Cómo evoluciona?"
       className="col-span-2"
+      error={query.isError}
+      onRetry={() => void query.refetch()}
       takeaway={last && mean > 0 && (
         <>{last.date.toLocaleDateString("es", { month: "long", year: "numeric" })}: {fmtNumber(last.value)} siniestros, {" "}
           {last.value >= mean ? "+" : ""}{fmtPct(last.value / mean - 1, 0)} frente al mes promedio.</>
