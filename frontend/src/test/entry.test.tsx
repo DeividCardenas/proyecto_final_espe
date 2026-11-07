@@ -1,9 +1,10 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { activeFilterCount } from "@/stores/useFilterStore";
 import { useUiStore } from "@/stores/useUiStore";
-import { GuidedTour, TOUR_KEY } from "@/components/tour/GuidedTour";
+import { GuideInvite } from "@/components/tour/GuideInvite";
+import { GUIDE_SEEN_KEY, startFullTour } from "@/components/tour/guide";
+import { describe as describeGuide, GUIDE } from "@/components/tour/guideContent";
 
 const base = { startDate: null, endDate: null, hourRange: [0, 23] as [number, number], severities: [0, 1, 2] as (0 | 1 | 2)[], workzoneOnly: false };
 
@@ -18,37 +19,32 @@ describe("pantalla de entrada", () => {
   });
 });
 
-describe("recorrido guiado", () => {
-  const renderTour = () =>
-    render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false, enabled: false } } })}>
-        <GuidedTour />
-      </QueryClientProvider>,
-    );
+describe("guía de uso", () => {
+  beforeEach(() => localStorage.clear());
 
-  beforeEach(() => {
-    localStorage.clear();
-    useUiStore.setState({ tourOpen: false });
-  });
-
-  it("se abre en la primera visita y al saltarlo no vuelve a abrirse", () => {
-    const first = renderTour();
-    expect(screen.getByTestId("guided-tour")).toBeInTheDocument();
-    expect(screen.getByText("Dónde")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Saltar"));
-    expect(screen.queryByTestId("guided-tour")).toBeNull();
-    expect(localStorage.getItem(TOUR_KEY)).toBe("1");
+  it("invita en la primera visita sin bloquear y al descartarla no vuelve", () => {
+    const first = render(<GuideInvite />);
+    expect(screen.getByTestId("guide-invite")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Ahora no"));
+    expect(screen.queryByTestId("guide-invite")).toBeNull();
+    expect(localStorage.getItem(GUIDE_SEEN_KEY)).toBe("1");
     first.unmount();
-    renderTour();
-    expect(screen.queryByTestId("guided-tour")).toBeNull();
+    render(<GuideInvite />);
+    expect(screen.queryByTestId("guide-invite")).toBeNull();
   });
 
-  it("avanza por los tres pasos", () => {
-    renderTour();
-    fireEvent.click(screen.getByText(/Siguiente/));
-    expect(screen.getByText("Por qué")).toBeInTheDocument();
-    fireEvent.click(screen.getByText(/Siguiente/));
-    expect(screen.getByText("Qué hacer")).toBeInTheDocument();
-    expect(screen.getByText("Empezar")).toBeInTheDocument();
+  it("cada parte explica qué hace y el texto se escapa", () => {
+    for (const e of Object.values(GUIDE)) expect(e.hace.length).toBeGreaterThan(10);
+    const html = describeGuide({ title: "x", hace: "a <b>", significa: "s", hizo: "h" });
+    expect(html).toContain("a &lt;b&gt;");
+    expect(html).toContain("Qué significa:");
+    expect(html).toContain("Cómo se hizo:");
+  });
+
+  it("el recorrido completo abre un globo con su progreso", async () => {
+    startFullTour();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(document.querySelector(".driver-popover-title")?.textContent).toContain("Bienvenido");
+    expect(document.querySelector(".driver-popover-progress-text")?.textContent).toMatch(/1 de \d+/);
   });
 });

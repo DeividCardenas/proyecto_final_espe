@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { Activity, BarChart3, Brain, Gauge, HelpCircle, ListOrdered, SlidersHorizontal, Table2 } from "lucide-react";
+import { Activity, BarChart3, Brain, Gauge, ListOrdered, SlidersHorizontal, Table2 } from "lucide-react";
 import { api } from "@/services/api";
 import { useUiStore, type PanelTab } from "@/stores/useUiStore";
 import { activeFilterCount, useFilterStore } from "@/stores/useFilterStore";
 import { cn } from "@/components/ui";
 import { useTheme } from "@/stores/useThemeStore";
 import { ThemeSwitcher } from "./ThemeSwitcher";
+import { HelpMenu } from "@/components/tour/HelpMenu";
 
 interface Health {
   status: string;
@@ -21,7 +22,7 @@ export const TABS: { id: PanelTab; label: string; icon: typeof BarChart3; hint: 
 ];
 
 export function Header() {
-  const { activeTab, setTab, panelOpen, togglePanel, drawerOpen, toggleDrawer, filtersOpen, toggleFilters, setTourOpen } = useUiStore();
+  const { activeTab, setTab, panelOpen, togglePanel, drawerOpen, toggleDrawer, filtersOpen, toggleFilters } = useUiStore();
   const filterCount = activeFilterCount(useFilterStore());
   const health = useQuery({
     queryKey: ["health"],
@@ -42,6 +43,7 @@ export function Header() {
       <nav className="flex items-center gap-1" aria-label="Secciones">
         <button
           onClick={toggleFilters}
+          data-tour="nav-filters"
           aria-pressed={filtersOpen}
           className={cn("mr-2 flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:text-slate-100",
             filtersOpen && "bg-slate-800 text-slate-100")}
@@ -55,6 +57,7 @@ export function Header() {
         {TABS.map(({ id, label, icon: Icon, hint }) => (
           <button
             key={id}
+            data-tour={`nav-${id}`}
             title={hint}
             aria-pressed={activeTab === id && panelOpen}
             onClick={() => (activeTab === id && panelOpen ? togglePanel() : setTab(id))}
@@ -68,6 +71,7 @@ export function Header() {
         ))}
         <button
           onClick={toggleDrawer}
+          data-tour="nav-table"
           title="Siniestros de la zona visible, exportables"
           aria-pressed={drawerOpen}
           className={cn("flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-slate-400 hover:text-slate-100",
@@ -77,10 +81,7 @@ export function Header() {
         </button>
       </nav>
       <div className="flex items-center gap-3">
-        <button onClick={() => setTourOpen(true)} className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-100"
-          title="Recorrido guiado de 3 pasos">
-          <HelpCircle size={14} />Recorrido
-        </button>
+        <HelpMenu />
         <ThemeSwitcher />
         {/* Estado del servicio: discreto; el detalle técnico queda en el tooltip */}
         <span

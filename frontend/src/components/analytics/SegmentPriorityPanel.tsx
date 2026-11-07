@@ -32,7 +32,7 @@ export function SegmentPriorityPanel() {
       {selectedSegment ? (
         <SegmentExplainCard segment={selectedSegment} />
       ) : (
-        <Card hero className="col-span-2"
+        <Card hero tourId="priority-hero" className="col-span-2"
           context={m && win && (
             <>Validación con el año siguiente al entrenamiento: AUC{" "}
               {win.auc_roc_ovr_macro.toLocaleString("es", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}, donde 0,5 es azar.
@@ -62,6 +62,7 @@ export function SegmentPriorityPanel() {
       )}
 
       <Card
+        tourId="priority-list"
         title={`Las ${expanded ? TOP_LIST : TOP_SHORT} cuadras prioritarias`}
         className="col-span-2"
         right={

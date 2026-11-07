@@ -23,6 +23,7 @@ export function HourlyDistribution({ hero = false }: { hero?: boolean }) {
   return (
     <Card
       hero={hero}
+      tourId="analytics-hero"
       title="¿A qué hora?"
       className="col-span-2"
       right={<span className="text-[10px] text-slate-500">clic = filtrar hora</span>}

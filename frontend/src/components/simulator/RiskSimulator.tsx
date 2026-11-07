@@ -65,7 +65,7 @@ export function RiskSimulator() {
 
   return (
     <div className="space-y-3" data-testid="risk-simulator">
-      <Card title="Ubicación del tramo">
+      <Card title="Ubicación del tramo" tourId="sim-location">
         <div className="flex items-center gap-2 text-[11px] text-slate-300">
           <MapPin size={14} className="text-cyan-400" />
           <span className="tabular-nums">{point[1].toFixed(5)}, {point[0].toFixed(5)}</span>
@@ -108,7 +108,7 @@ export function RiskSimulator() {
         </select>
       </Card>
 
-      <Card title="Riesgo predicho" right={r && <span className="text-[10px] text-slate-500">{r.model.mode === "ml" ? r.model.algorithm : "heurístico"} · {r.inference_ms} ms</span>}>
+      <Card title="Riesgo predicho" tourId="sim-result" right={r && <span className="text-[10px] text-slate-500">{r.model.mode === "ml" ? r.model.algorithm : "heurístico"} · {r.inference_ms} ms</span>}>
         {mutation.isError && <p className="text-xs text-red-400">No se pudo calcular la predicción.</p>}
         {r && (
           <div className="flex flex-col items-center">

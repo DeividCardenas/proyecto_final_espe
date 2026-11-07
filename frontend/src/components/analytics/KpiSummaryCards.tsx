@@ -83,7 +83,7 @@ export function KpiSummaryCards() {
     },
   ];
   return (
-    <div className={cn("col-span-2 grid grid-cols-3 gap-2", local.isLoading && "opacity-60")} data-testid="kpi-cards">
+    <div className={cn("col-span-2 grid grid-cols-3 gap-2", local.isLoading && "opacity-60")} data-testid="kpi-cards" data-tour="kpis">
       {(all ? items : items.slice(0, VISIBLE)).map((it) => (
         <div key={it.label} className="hud-panel rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2">
           <p className="text-[10px] uppercase tracking-wide text-slate-500">{it.label}</p>

@@ -45,6 +45,7 @@ export function SegmentExplainCard({ segment }: { segment: SelectedSegment }) {
 
   return (
     <Card
+      tourId="segment-explain"
       title="Predicción de la cuadra seleccionada"
       className="col-span-2 border-cyan-700/60"
       right={<button onClick={() => close(null)} aria-label="Cerrar predicción" className="text-slate-500 hover:text-slate-200"><X size={14} /></button>}

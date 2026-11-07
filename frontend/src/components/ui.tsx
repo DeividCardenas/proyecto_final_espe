@@ -17,13 +17,15 @@ export function severityClass(s: Severity) {
  * Tarjeta del bento grid. `takeaway` es la lectura principal del gráfico (el dato
  * con su comparación) y `context` la unidad, el ámbito y el periodo.
  */
-export function Card({ title, children, className, right, takeaway, context, hero }: {
+export function Card({ title, children, className, right, takeaway, context, hero, tourId }: {
   title?: string; children: ReactNode; className?: string; right?: ReactNode; takeaway?: ReactNode; context?: ReactNode;
   /** Tarjeta principal del bento: borde de acento y lectura más grande (lo primero que se mira) */
   hero?: boolean;
+  /** Ancla para la guía de uso (data-tour) */
+  tourId?: string;
 }) {
   return (
-    <section className={cn("hud-panel h-full rounded-xl border border-slate-800 bg-slate-900/80 p-3", hero && "border-cyan-700/60", className)}>
+    <section data-tour={tourId} className={cn("hud-panel h-full rounded-xl border border-slate-800 bg-slate-900/80 p-3", hero && "border-cyan-700/60", className)}>
       {title && (
         <header className="mb-1 flex items-center justify-between gap-2">
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{title}</h3>

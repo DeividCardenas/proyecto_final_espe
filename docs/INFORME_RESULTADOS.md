@@ -87,7 +87,7 @@ Este modelo responde a las observaciones del profesor sobre el OE3 ("clasificar 
    | 6 | 7900 S Stony Island Ave |
    | 7 | 600 N Michigan Ave |
 
-   La lista completa está en la pestaña **Tramos** de la aplicación, en `GET /api/v1/risk/segments` y en `data/processed/gold_segment_risk.parquet`.
+   La lista completa está en la sección **Priorizar** de la aplicación, en `GET /api/v1/risk/segments` y en `data/processed/gold_segment_risk.parquet`.
 
 ## 4. Hallazgos para la ingeniería vial (Vision Zero)
 

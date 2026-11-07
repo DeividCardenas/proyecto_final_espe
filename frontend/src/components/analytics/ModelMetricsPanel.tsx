@@ -35,6 +35,7 @@ function SegmentModelSection() {
   return (
     <>
       <Card
+        tourId="model-main"
         title="Modelo principal · riesgo por cuadra"
         className="col-span-2"
         takeaway={<>{MODEL_LABELS[m.winner] ?? m.winner}: interviniendo el 10% de cuadras priorizadas se cubre el{" "}

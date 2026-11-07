@@ -13,8 +13,8 @@ interface UiState {
   drawerOpen: boolean;
   /** Filtros plegados por defecto: al entrar sólo se ve el mapa y la respuesta principal */
   filtersOpen: boolean;
-  /** Recorrido guiado de 3 pasos (se abre solo en la primera visita) */
-  tourOpen: boolean;
+  /** Puntos de ayuda (?) sobre la interfaz: sólo si el usuario los activa */
+  helpHints: boolean;
   selectedCrashId: string | null;
   selectedCoords: [number, number] | null;
   flyOnSelect: boolean;
@@ -29,7 +29,7 @@ interface UiState {
   togglePanel: () => void;
   toggleDrawer: () => void;
   toggleFilters: () => void;
-  setTourOpen: (v: boolean) => void;
+  setHelpHints: (v: boolean) => void;
   selectCrash: (id: string | null, coords?: [number, number] | null, fly?: boolean) => void;
   setSimulatorPoint: (p: [number, number] | null) => void;
   setPickingPoint: (v: boolean) => void;
@@ -40,7 +40,7 @@ export const useUiStore = create<UiState>((set) => ({
   panelOpen: true,
   drawerOpen: false,
   filtersOpen: false,
-  tourOpen: false,
+  helpHints: false,
   selectedCrashId: null,
   selectedCoords: null,
   flyOnSelect: false,
@@ -58,7 +58,7 @@ export const useUiStore = create<UiState>((set) => ({
   togglePanel: () => set((s) => ({ panelOpen: !s.panelOpen })),
   toggleDrawer: () => set((s) => ({ drawerOpen: !s.drawerOpen })),
   toggleFilters: () => set((s) => ({ filtersOpen: !s.filtersOpen })),
-  setTourOpen: (tourOpen) => set({ tourOpen }),
+  setHelpHints: (helpHints) => set({ helpHints }),
   selectCrash: (selectedCrashId, coords = null, fly = false) =>
     set(selectedCrashId
       ? { selectedCrashId, selectedCoords: coords, flyOnSelect: fly, selectedSegment: null }
