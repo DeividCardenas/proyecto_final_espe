@@ -22,10 +22,10 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          // React y las librerías que dependen de él en un mismo chunk
+          // React y React Query en un mismo chunk; la tabla (TanStack Table/Virtual) va en
+          // su propio chunk diferido y sólo se descarga al abrir el cajón de datos
           maplibre: ["maplibre-gl"],
-          vendor: ["react", "react-dom", "@tanstack/react-query", "@tanstack/react-table",
-            "@tanstack/react-virtual"],
+          vendor: ["react", "react-dom", "@tanstack/react-query"],
         },
       },
     },

@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
@@ -19,7 +20,6 @@
     "@fontsource/shippori-mincho-b1": "5.3.0",
     "@radix-ui/react-checkbox": "1.1.1",
     "@radix-ui/react-slider": "1.2.0",
-    "@radix-ui/react-tabs": "1.1.0",
     "@tanstack/react-query": "5.56.2",
     "@tanstack/react-table": "8.20.5",
     "@tanstack/react-virtual": "3.10.8",
@@ -28,7 +28,6 @@
     "d3-array": "3.2.4",
     "d3-scale": "4.0.2",
     "d3-shape": "3.2.0",
-    "date-fns": "3.6.0",
     "driver.js": "1.10.2",
     "lucide-react": "0.446.0",
     "maplibre-gl": "6.15.0",
@@ -38,6 +37,7 @@
     "zustand": "5.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "9.39.5",
     "@testing-library/jest-dom": "6.5.0",
     "@testing-library/react": "16.0.1",
     "@types/d3-array": "3.2.1",
@@ -49,10 +49,14 @@
     "@types/react-dom": "18.3.0",
     "@vitejs/plugin-react": "4.3.1",
     "autoprefixer": "10.4.20",
+    "eslint": "9.39.5",
+    "eslint-plugin-react-hooks": "5.2.0",
+    "globals": "16.5.0",
     "jsdom": "25.0.1",
-    "postcss": "8.4.47",
+    "postcss": "8.5.32",
     "tailwindcss": "3.4.11",
     "typescript": "5.6.2",
+    "typescript-eslint": "8.72.1",
     "vite": "5.4.6",
     "vite-plugin-compression": "0.5.1",
     "vitest": "2.1.1"
