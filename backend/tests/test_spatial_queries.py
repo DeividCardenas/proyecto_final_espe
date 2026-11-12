@@ -6,6 +6,8 @@ import pytest
 from app.core.config import CHICAGO_BBOX
 from app.core.database import raw_connection
 
+pytestmark = pytest.mark.integration
+
 LOOP = {"min_lon": -87.65, "min_lat": 41.85, "max_lon": -87.60, "max_lat": 41.90}
 
 

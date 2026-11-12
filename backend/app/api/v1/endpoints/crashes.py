@@ -1,15 +1,40 @@
 """Endpoints geoespaciales de siniestros (GeoJSON nativo en SQL, DBSCAN, NDJSON)."""
 from __future__ import annotations
 
+import asyncio
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Response
 from fastapi.responses import StreamingResponse
 
-from app.core.database import get_pool
+from app.core.database import connection, ensure_pool
+from app.core.errors import TooManyRequestsError
+from app.core.http_cache import TTLCache, cached_bytes_response, dumps
 from app.schemas.spatial import CrashFilters, crash_filters
 
 router = APIRouter()
+
+# Operaciones pesadas por proceso Uvicorn. Cada una retiene una conexión del pool
+# (DB_POOL_MAX por worker), así que se acotan para que nunca dejen sin conexiones
+# al resto de endpoints: si el cupo está lleno se responde 429 con Retry-After.
+MAX_CONCURRENT_EXPORTS = 2
+MAX_CONCURRENT_CLUSTERS = 2
+_export_slots = asyncio.Semaphore(MAX_CONCURRENT_EXPORTS)
+_cluster_slots = asyncio.Semaphore(MAX_CONCURRENT_CLUSTERS)
+_cluster_cache = TTLCache(maxsize=64, ttl=600)
+
+GEOJSON_COLUMNS = (
+    "crash_record_id, crash_date, crash_hour, crash_day_of_week, severity, injuries_total, injuries_fatal, "
+    "weather_condition, lighting_condition, posted_speed_limit, prim_contributory_cause, street_no, "
+    "street_direction, street_name, first_crash_type, active_workzone, aadt_volume, geom"
+)
+
+
+async def _take_slot(sem: asyncio.Semaphore, what: str) -> None:
+    try:
+        await asyncio.wait_for(sem.acquire(), timeout=2)
+    except asyncio.TimeoutError:
+        raise TooManyRequestsError(f"Hay demasiadas {what} en curso; reintente en unos segundos") from None
 
 FEATURE_PROPS = """
     'id', c.crash_record_id,
@@ -40,7 +65,7 @@ async def crashes_geojson(
     # La CTE limita las filas ANTES de json_agg (evita materializar todo el BBOX en memoria)
     sql = f"""
         WITH sel AS (
-            SELECT * FROM silver_crashes c
+            SELECT {GEOJSON_COLUMNS} FROM silver_crashes c
             WHERE {where}
             ORDER BY c.crash_date DESC
             LIMIT ${len(params)}
@@ -56,7 +81,7 @@ async def crashes_geojson(
         )::text
         FROM sel c
     """
-    async with get_pool().acquire() as conn:
+    async with connection() as conn:
         body = await conn.fetchval(sql, *params)
     return Response(content=body, media_type="application/geo+json",
                     headers={"Cache-Control": "public, max-age=300"})
@@ -64,12 +89,13 @@ async def crashes_geojson(
 
 @router.get("/clusters", summary="Puntos calientes de siniestralidad (ST_ClusterDBSCAN)")
 async def crash_clusters(
+    request: Request,
     f: CrashFilters = Depends(crash_filters),
     eps_meters: float = Query(40, ge=5, le=500, description="Radio de vecindad DBSCAN en metros"),
     min_points: int = Query(15, ge=2, le=500, description="Siniestros mínimos para formar un núcleo"),
-    sample: int = Query(100_000, ge=1_000, le=500_000, description="Máximo de siniestros evaluados"),
+    sample: int = Query(100_000, ge=1_000, le=200_000, description="Máximo de siniestros evaluados"),
     limit: int = Query(500, ge=1, le=5_000),
-) -> dict:
+) -> Response:
     """Detecta concentraciones (típicamente intersecciones) con DBSCAN en EPSG:3435.
 
     Nota: con radios grandes la alta densidad urbana de Chicago encadena toda la
@@ -97,24 +123,34 @@ async def crash_clusters(
         FROM cl WHERE cid IS NOT NULL
         GROUP BY cid ORDER BY n DESC LIMIT ${n}
     """
-    async with get_pool().acquire() as conn:
-        rows = await conn.fetch(sql, *params)
-    return {
-        "type": "FeatureCollection",
-        "eps_meters": eps_meters,
-        "features": [
-            {"type": "Feature", "geometry": {"type": "Point", "coordinates": [r["lon"], r["lat"]]},
-             "properties": {"cluster_id": r["cid"], "count": r["n"], "critical": r["critical"],
-                            "fatalities": r["fatalities"]}}
-            for r in rows
-        ],
-    }
+    # DBSCAN es CPU intensivo: los mismos parámetros se sirven desde caché 10 minutos
+    key = (tuple(map(str, params)), eps_meters)
+    body = _cluster_cache.get(key)
+    if body is None:
+        await _take_slot(_cluster_slots, "detecciones de puntos calientes")
+        try:
+            async with connection() as conn:
+                rows = await conn.fetch(sql, *params)
+        finally:
+            _cluster_slots.release()
+        body = dumps({
+            "type": "FeatureCollection",
+            "eps_meters": eps_meters,
+            "features": [
+                {"type": "Feature", "geometry": {"type": "Point", "coordinates": [r["lon"], r["lat"]]},
+                 "properties": {"cluster_id": r["cid"], "count": r["n"], "critical": r["critical"],
+                                "fatalities": r["fatalities"]}}
+                for r in rows
+            ],
+        })
+        _cluster_cache.set(key, body)
+    return cached_bytes_response(request, body, media_type="application/geo+json", max_age=600)
 
 
 @router.get("/stream", summary="Exportación masiva NDJSON en streaming")
 async def crashes_stream(
     f: CrashFilters = Depends(crash_filters),
-    limit: int = Query(100_000, ge=1, le=1_000_000),
+    limit: int = Query(100_000, ge=1, le=300_000, description="Máximo de filas exportadas (las más recientes)"),
 ) -> StreamingResponse:
     where, params = f.where("c")
     params.append(limit)
@@ -124,19 +160,34 @@ async def crashes_stream(
         ORDER BY c.crash_date DESC LIMIT ${len(params)}
     """
 
+    # La exportación retiene una conexión mientras el cliente descarga: se limita el
+    # número de exportaciones simultáneas y se valida la BD antes de empezar a emitir
+    # (un error dentro del generador ya no puede convertirse en un código HTTP).
+    await ensure_pool()
+    await _take_slot(_export_slots, "exportaciones")
+
     async def gen():
-        async with get_pool().acquire() as conn:
-            async with conn.transaction():
-                async for rec in conn.cursor(sql, *params, prefetch=2000):
-                    yield rec["j"] + "\n"
+        try:
+            async with connection() as conn:
+                async with conn.transaction(readonly=True):
+                    batch: list[str] = []
+                    async for rec in conn.cursor(sql, *params, prefetch=2000):
+                        batch.append(rec["j"])
+                        if len(batch) >= 2000:
+                            yield "\n".join(batch) + "\n"
+                            batch.clear()
+                    if batch:
+                        yield "\n".join(batch) + "\n"
+        finally:
+            _export_slots.release()
 
     return StreamingResponse(gen(), media_type="application/x-ndjson",
                              headers={"Content-Disposition": "attachment; filename=chicago_crashes.ndjson"})
 
 
 @router.get("/{crash_record_id}", summary="Detalle de un siniestro con vehículos y personas (anonimizadas)")
-async def crash_detail(crash_record_id: str) -> dict:
-    async with get_pool().acquire() as conn:
+async def crash_detail(crash_record_id: str = Path(..., min_length=1, max_length=128)) -> dict:
+    async with connection() as conn:
         row = await conn.fetchrow(
             "SELECT json_build_object('lon', ST_X(c.geom), 'lat', ST_Y(c.geom), "
             f"{FEATURE_PROPS}, 'damage', c.damage, 'surface', c.roadway_surface_cond, "
