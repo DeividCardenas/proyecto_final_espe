@@ -1,402 +1,711 @@
 {
-  "trained_at": "2026-10-24T01:05:18.657275+00:00",
+  "trained_at": "2026-11-12T20:29:55.550457+00:00",
   "unit": "cuadra (centena de n\u00famero + direcci\u00f3n + calle)",
+  "anchor_date": "2026-11-13",
+  "data_range": [
+    "2023-01-01",
+    "2026-11-12"
+  ],
   "windows": {
-    "train": "historia 2023 -> riesgo 2024",
-    "test": "historia 2024 -> riesgo 2025"
+    "train": "historia 2023-11-13 -> 2024-11-13 | riesgo 2024-11-13 -> 2025-11-13",
+    "test": "historia 2024-11-13 -> 2025-11-13 | riesgo 2025-11-13 -> 2026-11-13"
   },
-  "n_train": 21351,
-  "n_test": 21416,
+  "n_train": 21439,
+  "n_test": 21326,
   "class_distribution_train": {
-    "Bajo": 0.6350053861645825,
-    "Medio": 0.29740995737904546,
-    "Alto": 0.06758465645637207
+    "Bajo": 0.6349176733989459,
+    "Medio": 0.30369886655161155,
+    "Alto": 0.061383460049442604
   },
   "class_distribution_test": {
-    "Bajo": 0.6383545013074337,
-    "Medio": 0.2998225625700411,
-    "Alto": 0.061822936122525214
+    "Bajo": 0.6352339866829223,
+    "Medio": 0.3026352808778017,
+    "Alto": 0.062130732439276
   },
+  "decision_rule": "Alto si P(Alto) >= umbral F1 fuera de pliegue; si no, la m\u00e1s probable entre Bajo y Medio",
   "models": {
     "logistic_regression": {
       "spatial_cv": {
         "auc_folds": [
-          0.7880032133955494,
-          0.7961606608744883,
-          0.7940508828917587,
-          0.7978253732173529,
-          0.7927166250891385
+          0.800086797372343,
+          0.8196417703959407,
+          0.7934255600217041,
+          0.8156523387024164,
+          0.8070101641699621
         ],
-        "auc_mean": 0.7937513510936576,
-        "auc_std": 0.0033646365058734185,
-        "auc_cv_variation": 0.004238904918067236
+        "auc_mean": 0.8071633261324733,
+        "auc_std": 0.009660246800605298,
+        "auc_cv_variation": 0.011968143853725879,
+        "oof_top10_capture_severe": 0.42692046227056424,
+        "oof_threshold_high": 0.17123164242178834
       },
       "temporal_test": {
-        "auc_roc_ovr_macro": 0.7959561031320934,
-        "auc_roc_high_vs_rest": 0.7986228229299301,
-        "recall_high": 0.6200906344410876,
-        "precision_high": 0.19031061659712564,
-        "base_rate_high": 0.061822936122525214,
-        "top10_precision_high": 0.2400747314339094,
-        "top10_capture_severe": 0.4149797570850202,
-        "top10_lift": 4.149797570850202
+        "auc_roc_ovr_macro": 0.8096414864071194,
+        "auc_roc_high_vs_rest": 0.8110402027068457,
+        "base_rate_high": 0.062130732439276,
+        "top10_precision_high": 0.24437148217636023,
+        "top10_capture_severe": 0.41661039837947333,
+        "top10_lift": 4.166103983794733,
+        "threshold_high": 0.17123164242178834,
+        "recall_high": 0.41056603773584904,
+        "precision_high": 0.2416703687250111,
+        "predicted_high_share": 0.10555190846853606,
+        "brier_high": 0.052464122539649466,
+        "ece_high": 0.005789886631475134
+      },
+      "calibration_high": {
+        "brier": 0.052464122539649466,
+        "ece": 0.005789886631475134,
+        "mean_predicted": 0.06043558692188014,
+        "observed_rate": 0.062130732439276,
+        "reliability": [
+          {
+            "mean_predicted": 0.00496,
+            "observed_rate": 0.00985,
+            "n": 2133
+          },
+          {
+            "mean_predicted": 0.00738,
+            "observed_rate": 0.01173,
+            "n": 2132
+          },
+          {
+            "mean_predicted": 0.01034,
+            "observed_rate": 0.01313,
+            "n": 2133
+          },
+          {
+            "mean_predicted": 0.01488,
+            "observed_rate": 0.01595,
+            "n": 2132
+          },
+          {
+            "mean_predicted": 0.02181,
+            "observed_rate": 0.02203,
+            "n": 2133
+          },
+          {
+            "mean_predicted": 0.032,
+            "observed_rate": 0.01969,
+            "n": 2133
+          },
+          {
+            "mean_predicted": 0.05038,
+            "observed_rate": 0.04221,
+            "n": 2132
+          },
+          {
+            "mean_predicted": 0.08585,
+            "observed_rate": 0.09099,
+            "n": 2132
+          },
+          {
+            "mean_predicted": 0.14175,
+            "observed_rate": 0.15143,
+            "n": 2133
+          },
+          {
+            "mean_predicted": 0.23497,
+            "observed_rate": 0.24426,
+            "n": 2133
+          }
+        ]
       },
       "confusion_matrix": [
         [
-          11050,
-          1923,
-          698
+          12390,
+          993,
+          164
         ],
         [
-          1864,
-          1762,
-          2795
+          2803,
+          2108,
+          1543
         ],
         [
-          239,
-          264,
-          821
+          334,
+          447,
+          544
         ]
       ],
       "feature_importance": [
         {
           "feature": "crashes_log",
-          "importance": 0.6553675748894904
+          "importance": 0.6885365289411141
         },
         {
-          "feature": "trafficway_type_OTHER",
-          "importance": 0.26231577704655257
-        },
-        {
-          "feature": "trafficway_type_UNKNOWN",
-          "importance": 0.259389962384223
-        },
-        {
-          "feature": "trafficway_type_DIVIDED - W/MEDIAN (NOT RAISED)",
-          "importance": 0.2122199834846826
-        },
-        {
-          "feature": "trafficway_type_DIVIDED - W/MEDIAN BARRIER",
-          "importance": 0.20555650457829389
-        },
-        {
-          "feature": "traffic_control_device_OTHER",
-          "importance": 0.18644141203783302
-        },
-        {
-          "feature": "trafficway_type_T-INTERSECTION",
-          "importance": 0.180088221218909
-        },
-        {
-          "feature": "trafficway_type_DRIVEWAY",
-          "importance": 0.1637342019969448
-        },
-        {
-          "feature": "traffic_control_device_TRAFFIC SIGNAL",
-          "importance": 0.15210612480509114
-        },
-        {
-          "feature": "trafficway_type_ALLEY",
-          "importance": 0.15038168421831966
+          "feature": "trafficway_type_infrequent_sklearn",
+          "importance": 0.3327275451743597
         },
         {
           "feature": "traffic_control_device_STOP SIGN/FLASHER",
-          "importance": 0.14748876623714194
+          "importance": 0.3193954966243631
+        },
+        {
+          "feature": "traffic_control_device_infrequent_sklearn",
+          "importance": 0.3034117727484981
+        },
+        {
+          "feature": "trafficway_type_T-INTERSECTION",
+          "importance": 0.27475324622099484
         },
         {
           "feature": "trafficway_type_ONE-WAY",
-          "importance": 0.13275131131691903
+          "importance": 0.2570816767007534
         },
         {
-          "feature": "traffic_control_device_UNKNOWN",
-          "importance": 0.12653913183091828
+          "feature": "traffic_control_device_OTHER",
+          "importance": 0.2564526162252641
         },
         {
-          "feature": "mean_speed",
-          "importance": 0.12208387428362522
+          "feature": "trafficway_type_ALLEY",
+          "importance": 0.20767505936851394
         },
         {
           "feature": "traffic_control_device_NO CONTROLS",
-          "importance": 0.12084776061666076
+          "importance": 0.19500561067503894
+        },
+        {
+          "feature": "trafficway_type_UNKNOWN",
+          "importance": 0.1791252727454087
+        },
+        {
+          "feature": "trafficway_type_DRIVEWAY",
+          "importance": 0.1748465067697006
+        },
+        {
+          "feature": "trafficway_type_DIVIDED - W/MEDIAN BARRIER",
+          "importance": 0.12949614154407255
+        },
+        {
+          "feature": "traffic_control_device_TRAFFIC SIGNAL",
+          "importance": 0.11687780271368249
+        },
+        {
+          "feature": "trafficway_type_PARKING LOT",
+          "importance": 0.1164211406179324
+        },
+        {
+          "feature": "traffic_control_device_UNKNOWN",
+          "importance": 0.11596145850013455
         }
       ]
     },
     "random_forest": {
       "spatial_cv": {
         "auc_folds": [
-          0.7973485637989262,
-          0.8005805514692245,
-          0.7974946836747648,
-          0.8002003719629464,
-          0.7990304709263194
+          0.7985013350641438,
+          0.8205100646417275,
+          0.7931545076261086,
+          0.8149443668538604,
+          0.8073833875802975
         ],
-        "auc_mean": 0.7989309283664363,
-        "auc_std": 0.001334865430376181,
-        "auc_cv_variation": 0.0016708145635387567
+        "auc_mean": 0.8068987323532276,
+        "auc_std": 0.010096093169688162,
+        "auc_cv_variation": 0.012512218404711162,
+        "oof_top10_capture_severe": 0.40720598232494903,
+        "oof_threshold_high": 0.14437704785235814
       },
       "temporal_test": {
-        "auc_roc_ovr_macro": 0.7999811062694189,
-        "auc_roc_high_vs_rest": 0.7961083321855418,
-        "recall_high": 0.33534743202416917,
-        "precision_high": 0.23554376657824933,
-        "base_rate_high": 0.061822936122525214,
-        "top10_precision_high": 0.23353573096683794,
-        "top10_capture_severe": 0.4008097165991903,
-        "top10_lift": 4.008097165991902
+        "auc_roc_ovr_macro": 0.809355402318304,
+        "auc_roc_high_vs_rest": 0.8093751538838152,
+        "base_rate_high": 0.062130732439276,
+        "top10_precision_high": 0.25656660412757976,
+        "top10_capture_severe": 0.4395678595543552,
+        "top10_lift": 4.395678595543552,
+        "threshold_high": 0.14437704785235814,
+        "recall_high": 0.5252830188679245,
+        "precision_high": 0.22095238095238096,
+        "predicted_high_share": 0.14770702428959956,
+        "brier_high": 0.052530879037560485,
+        "ece_high": 0.00975690656276839
+      },
+      "calibration_high": {
+        "brier": 0.052530879037560485,
+        "ece": 0.00975690656276839,
+        "mean_predicted": 0.06028231379755966,
+        "observed_rate": 0.062130732439276,
+        "reliability": [
+          {
+            "mean_predicted": 0.00887,
+            "observed_rate": 0.00891,
+            "n": 2133
+          },
+          {
+            "mean_predicted": 0.01164,
+            "observed_rate": 0.01595,
+            "n": 2132
+          },
+          {
+            "mean_predicted": 0.01391,
+            "observed_rate": 0.01078,
+            "n": 2133
+          },
+          {
+            "mean_predicted": 0.01771,
+            "observed_rate": 0.01642,
+            "n": 2132
+          },
+          {
+            "mean_predicted": 0.02409,
+            "observed_rate": 0.015,
+            "n": 2133
+          },
+          {
+            "mean_predicted": 0.03337,
+            "observed_rate": 0.02719,
+            "n": 2133
+          },
+          {
+            "mean_predicted": 0.05004,
+            "observed_rate": 0.0394,
+            "n": 2132
+          },
+          {
+            "mean_predicted": 0.089,
+            "observed_rate": 0.09803,
+            "n": 2132
+          },
+          {
+            "mean_predicted": 0.14236,
+            "observed_rate": 0.13315,
+            "n": 2133
+          },
+          {
+            "mean_predicted": 0.2118,
+            "observed_rate": 0.25645,
+            "n": 2133
+          }
+        ]
       },
       "confusion_matrix": [
         [
-          11481,
-          2026,
-          164
+          12423,
+          805,
+          319
         ],
         [
-          2074,
-          3070,
-          1277
+          2855,
+          1464,
+          2135
         ],
         [
-          263,
-          617,
-          444
+          341,
+          288,
+          696
         ]
       ],
       "feature_importance": [
         {
           "feature": "crashes_log",
-          "importance": 0.22652871845166064
+          "importance": 0.3240834216264837
         },
         {
           "feature": "intersection_share",
-          "importance": 0.09031393276046557
+          "importance": 0.11413410072350134
         },
         {
           "feature": "injury_rate",
-          "importance": 0.08631698079301452
+          "importance": 0.09736762135634724
         },
         {
           "feature": "bad_weather_share",
-          "importance": 0.06646004266311605
-        },
-        {
-          "feature": "lon",
-          "importance": 0.057798730226047736
-        },
-        {
-          "feature": "lat",
-          "importance": 0.05601984008228229
-        },
-        {
-          "feature": "cell_crashes_log",
-          "importance": 0.05484322878748386
-        },
-        {
-          "feature": "hit_and_run_share",
-          "importance": 0.05372055051456797
-        },
-        {
-          "feature": "night_share",
-          "importance": 0.05075610662521858
-        },
-        {
-          "feature": "aadt_log",
-          "importance": 0.04969262089934513
-        },
-        {
-          "feature": "mean_speed",
-          "importance": 0.04557608524329159
+          "importance": 0.06953212271628097
         },
         {
           "feature": "max_speed",
-          "importance": 0.04029608350064288
+          "importance": 0.04981245721715321
+        },
+        {
+          "feature": "night_share",
+          "importance": 0.04285495126530861
+        },
+        {
+          "feature": "hit_and_run_share",
+          "importance": 0.037693777235156274
+        },
+        {
+          "feature": "cell_crashes_log",
+          "importance": 0.034923613577958965
+        },
+        {
+          "feature": "mean_speed",
+          "importance": 0.03395849657805867
+        },
+        {
+          "feature": "lat",
+          "importance": 0.03213739417218051
+        },
+        {
+          "feature": "lon",
+          "importance": 0.03147165807581846
+        },
+        {
+          "feature": "aadt_log",
+          "importance": 0.026872922912966175
         },
         {
           "feature": "workzone_share",
-          "importance": 0.030539728866331963
+          "importance": 0.0222028481007236
         },
         {
           "feature": "traffic_control_device_TRAFFIC SIGNAL",
-          "importance": 0.01702150014681876
+          "importance": 0.02027081264602851
         },
         {
           "feature": "trafficway_type_ONE-WAY",
-          "importance": 0.013719160156169825
+          "importance": 0.014974235683599357
         }
       ]
     },
     "xgboost": {
       "spatial_cv": {
         "auc_folds": [
-          0.7903948337416745,
-          0.7972552619885104,
-          0.791983514446664,
-          0.7982354814456406,
-          0.7970687139798177
+          0.8006196033962852,
+          0.8212319111955142,
+          0.7950533652664818,
+          0.8157314242797735,
+          0.8062064584807951
         ],
-        "auc_mean": 0.7949875611204614,
-        "auc_std": 0.0031667046620700466,
-        "auc_cv_variation": 0.003983338629357759
+        "auc_mean": 0.8077685525237699,
+        "auc_std": 0.009590546926437033,
+        "auc_cv_variation": 0.011872889699001764,
+        "oof_top10_capture_severe": 0.4051665533650578,
+        "oof_threshold_high": 0.13620658218860626
       },
       "temporal_test": {
-        "auc_roc_ovr_macro": 0.7935587762909502,
-        "auc_roc_high_vs_rest": 0.7906966323491997,
-        "recall_high": 0.4773413897280967,
-        "precision_high": 0.19737663960024984,
-        "base_rate_high": 0.061822936122525214,
-        "top10_precision_high": 0.22326015880429706,
-        "top10_capture_severe": 0.3805668016194332,
-        "top10_lift": 3.8056680161943315
+        "auc_roc_ovr_macro": 0.8107099501090714,
+        "auc_roc_high_vs_rest": 0.8085602700997027,
+        "base_rate_high": 0.062130732439276,
+        "top10_precision_high": 0.24718574108818012,
+        "top10_capture_severe": 0.42808912896691426,
+        "top10_lift": 4.2808912896691425,
+        "threshold_high": 0.13620658218860626,
+        "recall_high": 0.5162264150943396,
+        "precision_high": 0.2190903267136451,
+        "predicted_high_share": 0.1463940729625809,
+        "brier_high": 0.0525946912640952,
+        "ece_high": 0.005962571907481245
+      },
+      "calibration_high": {
+        "brier": 0.0525946912640952,
+        "ece": 0.005962571907481245,
+        "mean_predicted": 0.06045837386957232,
+        "observed_rate": 0.062130732439276,
+        "reliability": [
+          {
+            "mean_predicted": 0.00787,
+            "observed_rate": 0.00469,
+            "n": 2133
+          },
+          {
+            "mean_predicted": 0.01091,
+            "observed_rate": 0.01735,
+            "n": 2132
+          },
+          {
+            "mean_predicted": 0.01353,
+            "observed_rate": 0.01735,
+            "n": 2133
+          },
+          {
+            "mean_predicted": 0.01675,
+            "observed_rate": 0.01032,
+            "n": 2132
+          },
+          {
+            "mean_predicted": 0.02176,
+            "observed_rate": 0.02203,
+            "n": 2133
+          },
+          {
+            "mean_predicted": 0.02987,
+            "observed_rate": 0.02579,
+            "n": 2133
+          },
+          {
+            "mean_predicted": 0.04621,
+            "observed_rate": 0.03846,
+            "n": 2132
+          },
+          {
+            "mean_predicted": 0.08167,
+            "observed_rate": 0.09381,
+            "n": 2132
+          },
+          {
+            "mean_predicted": 0.13508,
+            "observed_rate": 0.1444,
+            "n": 2133
+          },
+          {
+            "mean_predicted": 0.24089,
+            "observed_rate": 0.24707,
+            "n": 2133
+          }
+        ]
       },
       "confusion_matrix": [
         [
-          11259,
-          1924,
-          488
+          12339,
+          871,
+          337
         ],
         [
-          1936,
-          2403,
-          2082
+          2768,
+          1585,
+          2101
         ],
         [
-          242,
-          450,
-          632
+          330,
+          311,
+          684
         ]
       ],
       "feature_importance": [
         {
           "feature": "crashes_log",
-          "importance": 0.22120966017246246
-        },
-        {
-          "feature": "injury_rate",
-          "importance": 0.06409560889005661
+          "importance": 0.31232672929763794
         },
         {
           "feature": "intersection_share",
-          "importance": 0.04244905710220337
+          "importance": 0.07965230196714401
         },
         {
-          "feature": "traffic_control_device_TRAFFIC SIGNAL",
-          "importance": 0.04014713689684868
+          "feature": "injury_rate",
+          "importance": 0.04758893698453903
         },
         {
           "feature": "trafficway_type_ONE-WAY",
-          "importance": 0.034631580114364624
+          "importance": 0.04304268956184387
         },
         {
-          "feature": "bad_weather_share",
-          "importance": 0.028920980170369148
-        },
-        {
-          "feature": "trafficway_type_FOUR WAY",
-          "importance": 0.027567200362682343
-        },
-        {
-          "feature": "max_speed",
-          "importance": 0.027374813333153725
-        },
-        {
-          "feature": "mean_speed",
-          "importance": 0.02551312930881977
+          "feature": "traffic_control_device_TRAFFIC SIGNAL",
+          "importance": 0.03143812343478203
         },
         {
           "feature": "trafficway_type_DIVIDED - W/MEDIAN (NOT RAISED)",
-          "importance": 0.02508457936346531
+          "importance": 0.0273881908506155
         },
         {
-          "feature": "traffic_control_device_STOP SIGN/FLASHER",
-          "importance": 0.024994444102048874
+          "feature": "max_speed",
+          "importance": 0.02712695673108101
         },
         {
-          "feature": "lon",
-          "importance": 0.023551559075713158
+          "feature": "trafficway_type_DIVIDED - W/MEDIAN BARRIER",
+          "importance": 0.023327959701418877
         },
         {
-          "feature": "trafficway_type_ALLEY",
-          "importance": 0.021772295236587524
+          "feature": "mean_speed",
+          "importance": 0.023053551092743874
+        },
+        {
+          "feature": "bad_weather_share",
+          "importance": 0.02177223563194275
+        },
+        {
+          "feature": "traffic_control_device_NO CONTROLS",
+          "importance": 0.016114044934511185
+        },
+        {
+          "feature": "lat",
+          "importance": 0.016001170501112938
         },
         {
           "feature": "hit_and_run_share",
-          "importance": 0.021379707381129265
+          "importance": 0.01585477404296398
         },
         {
-          "feature": "aadt_log",
-          "importance": 0.021092601120471954
+          "feature": "trafficway_type_T-INTERSECTION",
+          "importance": 0.01577162928879261
+        },
+        {
+          "feature": "trafficway_type_FOUR WAY",
+          "importance": 0.0157465897500515
         }
       ]
     }
   },
-  "selection_metric": "top10_capture_severe",
+  "selection_metric": "oof_top10_capture_severe (CV espacial en train, regla de 1 error est\u00e1ndar)",
+  "selection": {
+    "logistic_regression": {
+      "capture": 0.42692046227056424,
+      "se": 0.013825702464584689
+    },
+    "random_forest": {
+      "capture": 0.40720598232494903,
+      "se": 0.012915041306746717
+    },
+    "xgboost": {
+      "capture": 0.4051665533650578,
+      "se": 0.012812272733342081
+    }
+  },
   "winner": "logistic_regression",
   "baseline_gain_auc": 0.0,
+  "baselines": {
+    "historial_siniestros": {
+      "auc_roc_high_vs_rest": 0.8054604250919529,
+      "base_rate_high": 0.062130732439276,
+      "top10_precision_high": 0.25469043151969983,
+      "top10_capture_severe": 0.43686698176907496,
+      "top10_lift": 4.3686698176907495
+    },
+    "historial_graves": {
+      "auc_roc_high_vs_rest": 0.7928862047463665,
+      "base_rate_high": 0.062130732439276,
+      "top10_precision_high": 0.2045028142589118,
+      "top10_capture_severe": 0.350438892640108,
+      "top10_lift": 3.50438892640108
+    },
+    "historial_lesionados": {
+      "auc_roc_high_vs_rest": 0.7878232126129543,
+      "base_rate_high": 0.062130732439276,
+      "top10_precision_high": 0.23592870544090055,
+      "top10_capture_severe": 0.41255908170155303,
+      "top10_lift": 4.12559081701553
+    }
+  },
+  "bootstrap_top10_capture": {
+    "logistic_regression": {
+      "capture": 0.41661039837947333,
+      "ci95": [
+        0.386984973635283,
+        0.44482867691359235
+      ],
+      "se": 0.014610275774944842
+    },
+    "random_forest": {
+      "capture": 0.4395678595543552,
+      "ci95": [
+        0.41039607871842515,
+        0.4638898550724638
+      ],
+      "se": 0.01359216583611635
+    },
+    "xgboost": {
+      "capture": 0.42808912896691426,
+      "ci95": [
+        0.39918844172043183,
+        0.4536641099392777
+      ],
+      "se": 0.01405812406577169
+    },
+    "historial_siniestros": {
+      "capture": 0.43686698176907496,
+      "ci95": [
+        0.4159543619134456,
+        0.46536847580280416
+      ],
+      "se": 0.013276834663679772
+    },
+    "historial_graves": {
+      "capture": 0.350438892640108,
+      "ci95": [
+        0.3248293370462145,
+        0.3768950343197147
+      ],
+      "se": 0.0133523424457968
+    },
+    "historial_lesionados": {
+      "capture": 0.41255908170155303,
+      "ci95": [
+        0.384095516596167,
+        0.43491678478909035
+      ],
+      "se": 0.012809917024154792
+    }
+  },
+  "winner_vs_best_baseline": {
+    "baseline": "historial_siniestros",
+    "mean": -0.020256583389601623,
+    "ci95": [
+      -0.04290208968567373,
+      -0.002368275734057252
+    ],
+    "significant": true
+  },
   "forecast": {
-    "history_window": "2025-10-24 -> 2026-10-24",
-    "segments_scored": 21214,
-    "high_risk_segments": 3988,
+    "history_window": "2025-11-13 -> 2026-11-13",
+    "segments_scored": 21179,
+    "high_risk_segments": 2512,
+    "high_risk_threshold": 0.16814560073571738,
+    "trained_on": "historia 2024-11-13 -> 2025-11-13 | riesgo 2025-11-13 -> 2026-11-13",
     "top10": [
       {
-        "segment_id": "10000 W OHARE ST",
-        "p_alto": 0.921,
+        "segment_id": "600 N MICHIGAN AVE",
+        "p_alto": 0.61,
         "severe_crashes": 3.0,
-        "crashes": 245.0
+        "crashes": 77.0
+      },
+      {
+        "segment_id": "7900 S STONY ISLAND AVE",
+        "p_alto": 0.603,
+        "severe_crashes": 2.0,
+        "crashes": 88.0
       },
       {
         "segment_id": "700 S CICERO AVE",
-        "p_alto": 0.864,
+        "p_alto": 0.602,
         "severe_crashes": 3.0,
-        "crashes": 83.0
+        "crashes": 86.0
       },
       {
-        "segment_id": "4500 W LAKE ST",
-        "p_alto": 0.855,
-        "severe_crashes": 4.0,
-        "crashes": 33.0
+        "segment_id": "7500 S STONY ISLAND AVE",
+        "p_alto": 0.588,
+        "severe_crashes": 3.0,
+        "crashes": 51.0
       },
       {
-        "segment_id": "0 W IDA B WELLS DR",
-        "p_alto": 0.848,
-        "severe_crashes": 3.0,
+        "segment_id": "5700 S LAKE SHORE DR",
+        "p_alto": 0.575,
+        "severe_crashes": 0.0,
+        "crashes": 74.0
+      },
+      {
+        "segment_id": "1500 N MILWAUKEE AVE",
+        "p_alto": 0.555,
+        "severe_crashes": 2.0,
+        "crashes": 28.0
+      },
+      {
+        "segment_id": "5700 S KEDZIE AVE",
+        "p_alto": 0.537,
+        "severe_crashes": 0.0,
         "crashes": 50.0
       },
       {
         "segment_id": "0 W 87TH ST",
-        "p_alto": 0.833,
+        "p_alto": 0.532,
         "severe_crashes": 1.0,
-        "crashes": 73.0
+        "crashes": 76.0
       },
       {
-        "segment_id": "7900 S STONY ISLAND AVE",
-        "p_alto": 0.827,
-        "severe_crashes": 2.0,
-        "crashes": 86.0
+        "segment_id": "1600 E 95TH ST",
+        "p_alto": 0.525,
+        "severe_crashes": 0.0,
+        "crashes": 58.0
       },
       {
-        "segment_id": "600 N MICHIGAN AVE",
-        "p_alto": 0.819,
-        "severe_crashes": 3.0,
-        "crashes": 78.0
-      },
-      {
-        "segment_id": "7500 S STONY ISLAND AVE",
-        "p_alto": 0.816,
-        "severe_crashes": 2.0,
-        "crashes": 53.0
-      },
-      {
-        "segment_id": "9500 S HALSTED ST",
-        "p_alto": 0.816,
-        "severe_crashes": 1.0,
-        "crashes": 72.0
-      },
-      {
-        "segment_id": "200 W 87TH ST",
-        "p_alto": 0.804,
-        "severe_crashes": 2.0,
-        "crashes": 44.0
+        "segment_id": "900 N MICHIGAN AVE",
+        "p_alto": 0.511,
+        "severe_crashes": 0.0,
+        "crashes": 57.0
       }
     ]
   },
-  "elapsed_s": 27.7
+  "provenance": {
+    "git_commit": null,
+    "python": "3.11.18",
+    "versions": {
+      "scikit-learn": "1.6.1",
+      "xgboost": "2.1.4",
+      "pandas": "2.2.3",
+      "numpy": "1.26.4",
+      "joblib": "1.4.2"
+    },
+    "data_fingerprint": "3006306d906aef1d8cbc60c6e4b48d995e37dd0671a1620d2fb8336e74f2a208",
+    "n_rows": 21439
+  },
+  "elapsed_s": 28.2
 }

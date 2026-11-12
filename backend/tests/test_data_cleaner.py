@@ -70,3 +70,30 @@ def test_dedup_keeps_latest_download_and_speed_zero_is_missing():
     assert row["injuries_fatal"] == 1
     assert pd.isna(row["posted_speed_limit"])
     assert not {"_part", "_updated_at"} & set(clean.columns)
+
+
+def test_ingest_dataset_whose_date_field_is_not_a_column(tmp_path, monkeypatch):
+    """vehicles y people filtran por crash_date pero no lo descargan: la ingesta no debe fallar."""
+    import json
+
+    from app.services.etl import soda_client
+
+    spec = DATASETS["vehicles"]
+    assert spec.date_field not in spec.columns
+
+    class FakeClient:
+        def count(self, spec, where):
+            return 1
+
+        def iter_pages(self, spec, where, limit):
+            yield [{**{c: "1" for c in spec.columns}, ":updated_at": "2026-11-01T00:00:00.000Z"}]
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(soda_client.settings, "DATA_DIR", str(tmp_path))
+    summary = soda_client.ingest("vehicles", since="2023-01-01", incremental=True, client=FakeClient())
+    assert summary["downloaded"] == 1
+    assert summary["max_value"] is None and summary["max_updated_at"] == "2026-11-01T00:00:00.000Z"
+    saved = json.loads((tmp_path / "raw" / "vehicles" / "_watermark.json").read_text(encoding="utf-8"))
+    assert saved["max_updated_at"] == "2026-11-01T00:00:00.000Z"
