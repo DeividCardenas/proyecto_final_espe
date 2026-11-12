@@ -111,6 +111,8 @@ export interface ModelMetrics {
   thresholds_required: Record<string, number>;
   test: Record<string, number>;
   test_f1_threshold: Record<string, number>;
+  /** Regla de decisión publicada (probabilidades calibradas): umbral, recall, precisión y lift de la clase crítica */
+  test_decision?: { threshold?: number; recall_critical?: number; precision_critical?: number; lift?: number };
   cv: { auc_mean: number; auc_std: number; auc_cv_variation: number };
   confusion_matrix: number[][];
   feature_importance: { feature: string; importance: number }[];

@@ -10,16 +10,17 @@ const UNDETERMINED = new Set(["UNABLE TO DETERMINE", "NOT APPLICABLE", "UNKNOWN"
 /** Ranking de causas contributivas (barras desde cero; la tasa crítica va como nota). */
 export function TopCauses({ hero = false }: { hero?: boolean }) {
   const { filters: f, rateFilters: rf, scope, local, composed } = useKpis();
-  const { data = [] } = useQuery({
+  const query = useQuery({
     queryKey: ["causes", f],
-    queryFn: () => crashService.causes(f),
+    queryFn: ({ signal }) => crashService.causes(f, signal),
     enabled: !!f.bounds,
     placeholderData: keepPreviousData,
   });
+  const data = query.data ?? [];
   // La tasa crítica de cada causa se calcula sin filtros de severidad ni obra
   const rates = useQuery({
     queryKey: ["causes", rf],
-    queryFn: () => crashService.causes(rf),
+    queryFn: ({ signal }) => crashService.causes(rf, signal),
     enabled: !!f.bounds && composed,
     placeholderData: keepPreviousData,
   });
@@ -37,10 +38,17 @@ export function TopCauses({ hero = false }: { hero?: boolean }) {
       hero={hero}
       title="¿Por qué ocurren?"
       className="col-span-2"
+      error={query.isError}
+      onRetry={() => void query.refetch()}
       takeaway={first && total > 0 && (
         <>La causa identificada más frecuente es <b>{first.cause.toLowerCase()}</b> ({fmtPct(first.crashes / total, 0)} del total).</>
       )}
-      context={`Causa contributiva principal; ${total > 0 ? `${fmtPct(undetermined / total, 0)} sin causa determinada (excluidos)` : ""}${composed ? " · tasas sin filtros de severidad ni obra" : ""} · ${scope}`}
+      context={[
+        "Causa contributiva principal",
+        total > 0 ? `${fmtPct(undetermined / total, 0)} sin causa determinada (excluidos)` : null,
+        composed ? "tasas sin filtros de severidad ni obra" : null,
+        scope,
+      ].filter(Boolean).join(" · ")}
     >
       <RankChart
         ariaLabel="Causas contributivas más frecuentes"

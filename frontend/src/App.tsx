@@ -10,6 +10,7 @@ import { GuideInvite } from "@/components/tour/GuideInvite";
 import { useEffect } from "react";
 import { useTheme } from "@/stores/useThemeStore";
 import { applyThemeVars } from "@/theme/themes";
+import { loadThemeFonts } from "@/theme/fonts";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1, staleTime: 30_000 } },
@@ -17,7 +18,10 @@ const queryClient = new QueryClient({
 
 function ThemeSync() {
   const theme = useTheme();
-  useEffect(() => applyThemeVars(theme), [theme]);
+  useEffect(() => {
+    void loadThemeFonts(theme.id);
+    applyThemeVars(theme);
+  }, [theme]);
   return null;
 }
 

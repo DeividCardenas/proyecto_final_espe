@@ -40,6 +40,23 @@ export function useWidth(fallback = 320) {
 
 export interface Reference { value: number; label: string }
 
+/** Ancho aproximado de un carácter a 10 px (texto de los ejes y etiquetas). */
+const CHAR_PX = 5.6;
+
+/**
+ * Recorta etiqueta y nota para que quepan en `maxChars` (se recorta primero la nota):
+ * en paneles angostos el texto ya no pisa el valor de la derecha.
+ */
+export function fitLabel(label: string, note: string | undefined, maxChars: number): { label: string; note?: string } {
+  const cut = (t: string, n: number) => (t.length <= n ? t : `${t.slice(0, Math.max(1, n - 1))}…`);
+  const sep = 5; // "  ·  "
+  if (!note) return { label: cut(label, maxChars) };
+  if (label.length + sep + note.length <= maxChars) return { label, note };
+  const room = maxChars - label.length - sep;
+  if (room >= 8) return { label, note: cut(note, room) };
+  return { label: cut(label, maxChars) };
+}
+
 // ----------------------------------------------------------------------------
 // Columnas (distribución por una variable ordinal, p. ej. hora del día)
 // ----------------------------------------------------------------------------
@@ -188,10 +205,12 @@ export function RankChart({
         {data.map((d, i) => {
           const y0 = m.top + i * row;
           const color = d.highlight ? t.chart.critical : mark === "dot" ? TEXT_STRONG : MUTED;
+          const fit = fitLabel(d.label, d.note, Math.floor((width - m.left - m.right) / CHAR_PX));
           return (
-            <g key={d.label}>
+            <g key={`${i}-${d.label}`}>
+              <title>{d.note ? `${d.label} · ${d.note}: ${format(d.value)}` : `${d.label}: ${format(d.value)}`}</title>
               <text x={m.left} y={y0 + 9} fontSize={FONT} fill={TEXT}>
-                {d.label}{d.note && <tspan fill={TEXT} opacity={0.7}>{`  ·  ${d.note}`}</tspan>}
+                {fit.label}{fit.note && <tspan fill={TEXT} opacity={0.85}>{`  ·  ${fit.note}`}</tspan>}
               </text>
               <line x1={m.left} x2={width - m.right} y1={y0 + 18} y2={y0 + 18} stroke={t.chart.grid} />
               {mark === "bar" ? (
@@ -242,7 +261,7 @@ export function DivergingBars({
           const y0 = m.top + i * row;
           const up = d.value >= 0;
           return (
-            <g key={d.label}>
+            <g key={`${i}-${d.label}`}>
               <text x={up ? x0 - 4 : x0 + 4} y={y0 + 12} textAnchor={up ? "end" : "start"} fontSize={FONT} fill={TEXT_STRONG}>
                 {d.label}
               </text>

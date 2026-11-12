@@ -8,6 +8,7 @@ class MockMap {
   handlers = new Map<string, Set<(...a: unknown[]) => void>>();
   removed = false;
   triggerRepaint = vi.fn();
+  setStyle = vi.fn();
   constructor(public opts: Record<string, unknown>) {
     instances.push(this);
   }
@@ -32,7 +33,7 @@ vi.mock("maplibre-gl", () => ({ Map: vi.fn((o) => new MockMap(o)) }));
 
 const webgl = { ok: true };
 
-import { useMapLibre } from "@/hooks/useMapLibre";
+import { BASEMAP_TIMEOUT_MS, FALLBACK_STYLE, useMapLibre } from "@/hooks/useMapLibre";
 
 function Harness({ onState }: { onState: (s: ReturnType<typeof useMapLibre>) => void }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -83,5 +84,46 @@ describe("useMapLibre", () => {
     render(<Harness onState={(s) => (last = s)} />);
     expect(instances).toHaveLength(0);
     expect(last!.webGlSupported).toBe(false);
+  });
+
+  it("pasa al mapa base de respaldo si el estilo externo falla antes de cargar", () => {
+    let last: ReturnType<typeof useMapLibre> | null = null;
+    render(<Harness onState={(st) => (last = st)} />);
+    const map = instances[0];
+    act(() => map.emit("error", { error: new Error("Failed to fetch style") }));
+    expect(map.setStyle).toHaveBeenCalledWith(FALLBACK_STYLE);
+    expect(last!.basemapFallback).toBe(true);
+    // Un segundo error no vuelve a cambiar el estilo
+    act(() => map.emit("error", { error: new Error("otro") }));
+    expect(map.setStyle).toHaveBeenCalledTimes(1);
+  });
+
+  it("no confunde un fallo de tesela con un fallo del mapa base", () => {
+    let last: ReturnType<typeof useMapLibre> | null = null;
+    render(<Harness onState={(st) => (last = st)} />);
+    const map = instances[0];
+    act(() => map.emit("style.load"));
+    act(() => map.emit("error", { error: new Error("tile 404") }));
+    expect(map.setStyle).not.toHaveBeenCalled();
+    expect(last!.basemapFallback).toBe(false);
+  });
+
+  it("usa el respaldo si el estilo no llega a tiempo, y no si ya llegó", () => {
+    vi.useFakeTimers();
+    try {
+      render(<Harness onState={() => {}} />);
+      const slow = instances[0];
+      act(() => { vi.advanceTimersByTime(BASEMAP_TIMEOUT_MS + 1); });
+      expect(slow.setStyle).toHaveBeenCalledWith(FALLBACK_STYLE);
+
+      instances.length = 0;
+      render(<Harness onState={() => {}} />);
+      const fast = instances[0];
+      act(() => fast.emit("style.load"));
+      act(() => { vi.advanceTimersByTime(BASEMAP_TIMEOUT_MS + 1); });
+      expect(fast.setStyle).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

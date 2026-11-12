@@ -2,13 +2,15 @@ import * as Slider from "@radix-ui/react-slider";
 import * as Checkbox from "@radix-ui/react-checkbox";
 import { useState } from "react";
 import { Check, ChevronDown, RotateCcw, X } from "lucide-react";
-import { format, subDays, subYears } from "date-fns";
 import { activeFilterCount, useFilterStore } from "@/stores/useFilterStore";
 import { useUiStore } from "@/stores/useUiStore";
 import { useMapStore, type LayerId } from "@/stores/useMapStore";
 import { cn, SEVERITY_LABELS } from "@/components/ui";
 import type { Severity } from "@/types/api";
 import { useTheme } from "@/stores/useThemeStore";
+import { useShallow } from "zustand/react/shallow";
+import { useDataCoverage } from "@/hooks/useDataCoverage";
+import { fmtDateTime, periodPresets } from "@/lib/dates";
 
 interface LayerDef { id: LayerId; label: string; hint: string; tech: string }
 
@@ -30,8 +32,6 @@ const MORE_LAYERS: LayerDef[] = [
   { id: "aadt", label: "Volumen de tráfico", hint: "Vehículos por día", tech: "Aforos AADT de 2006" },
 ];
 
-const iso = (d: Date) => format(d, "yyyy-MM-dd");
-
 function Box({ checked, onChange, color, label, title }: {
   checked: boolean; onChange: () => void; color?: string; label: string; title?: string;
 }) {
@@ -52,13 +52,13 @@ function Box({ checked, onChange, color, label, title }: {
 }
 
 function LayerList({ items }: { items: LayerDef[] }) {
-  const { layers, toggleLayer } = useMapStore();
+  const { layers, toggleLayer } = useMapStore(useShallow((s) => ({ layers: s.layers, toggleLayer: s.toggleLayer })));
   return (
     <div className="space-y-2">
       {items.map((l) => (
         <div key={l.id}>
           <Box checked={layers[l.id]} onChange={() => toggleLayer(l.id)} label={l.label} title={l.tech} />
-          <p className="ml-6 text-[10px] text-slate-500">{l.hint}</p>
+          <p className="ml-6 text-[10px] text-slate-400">{l.hint}</p>
         </div>
       ))}
     </div>
@@ -67,21 +67,21 @@ function LayerList({ items }: { items: LayerDef[] }) {
 
 /** Panel de filtros y capas: plegado por defecto para que al entrar el mapa sea el protagonista. */
 export function Sidebar() {
+  const filtersOpen = useUiStore((s) => s.filtersOpen);
+  if (!filtersOpen) return null;
+  return <FiltersPanel />;
+}
+
+function FiltersPanel() {
   const f = useFilterStore();
   const SEVERITY_COLORS = useTheme().severity;
-  const layers = useMapStore((s) => s.layers);
-  const { filtersOpen, toggleFilters } = useUiStore();
-  const moreActive = MORE_LAYERS.filter((l) => layers[l.id]).length;
+  const toggleFilters = useUiStore((s) => s.toggleFilters);
+  const moreActive = useMapStore((s) => MORE_LAYERS.filter((l) => s.layers[l.id]).length);
   const [showMore, setShowMore] = useState(false);
-  const today = new Date();
-  if (!filtersOpen) return null;
-  const presets: { label: string; start: string | null }[] = [
-    { label: "Todo", start: null },
-    { label: "1 año", start: iso(subYears(today, 1)) },
-    { label: "90 días", start: iso(subDays(today, 90)) },
-    { label: "30 días", start: iso(subDays(today, 30)) },
-  ];
-  const sectionTitle = "hud-title mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500";
+  // Los atajos cuentan hacia atrás desde el último dato cargado, no desde hoy
+  const { firstDate, lastDate } = useDataCoverage();
+  const presets = periodPresets(lastDate);
+  const sectionTitle = "hud-title mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400";
   const active = activeFilterCount(f);
 
   return (
@@ -89,7 +89,7 @@ export function Sidebar() {
       aria-label="Filtros y capas" data-testid="filters-panel">
       <div className="-mb-2 flex items-center justify-between">
         <p className="text-xs font-semibold text-slate-200">Filtros y capas</p>
-        <button onClick={toggleFilters} aria-label="Cerrar filtros" className="text-slate-500 hover:text-slate-200"><X size={14} /></button>
+        <button onClick={toggleFilters} aria-label="Cerrar filtros" className="text-slate-400 hover:text-slate-200"><X size={14} /></button>
       </div>
 
       <section>
@@ -110,6 +110,8 @@ export function Sidebar() {
             <button
               key={p.label}
               onClick={() => f.setDates(p.start, null)}
+              aria-pressed={f.startDate === p.start && !f.endDate}
+              title={p.start ? `Desde el ${fmtDateTime(p.start)} hasta el último dato` : "Todo el periodo disponible"}
               className={cn("rounded-md border border-slate-700 px-1 py-1 text-[11px] text-slate-300 hover:bg-slate-800",
                 f.startDate === p.start && !f.endDate && "border-cyan-600 bg-cyan-900/40 text-cyan-200")}
             >
@@ -118,13 +120,18 @@ export function Sidebar() {
           ))}
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <input type="date" aria-label="Fecha inicial" value={f.startDate ?? ""} max={f.endDate ?? undefined}
+          <input type="date" aria-label="Fecha inicial" value={f.startDate ?? ""} min={firstDate?.slice(0, 10)} max={f.endDate ?? lastDate?.slice(0, 10)}
             onChange={(e) => f.setDates(e.target.value || null, f.endDate)}
             className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-slate-200 [color-scheme:dark]" />
-          <input type="date" aria-label="Fecha final" value={f.endDate ?? ""} min={f.startDate ?? undefined}
+          <input type="date" aria-label="Fecha final" value={f.endDate ?? ""} min={f.startDate ?? firstDate?.slice(0, 10)} max={lastDate?.slice(0, 10)}
             onChange={(e) => f.setDates(f.startDate, e.target.value || null)}
             className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-slate-200 [color-scheme:dark]" />
         </div>
+        {lastDate && (
+          <p className="mt-1.5 text-[10px] text-slate-400" data-testid="data-coverage">
+            Datos del {fmtDateTime(firstDate?.slice(0, 10))} al {fmtDateTime(lastDate.slice(0, 10))}
+          </p>
+        )}
       </section>
 
       <section>

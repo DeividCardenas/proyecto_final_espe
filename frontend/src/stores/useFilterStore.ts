@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { Severity } from "@/types/api";
+import { orderedRange } from "@/lib/dates";
 
 export interface FilterState {
   startDate: string | null; // YYYY-MM-DD
@@ -24,14 +25,18 @@ const initial = {
 
 export const useFilterStore = create<FilterState>((set) => ({
   ...initial,
-  setDates: (startDate, endDate) => set({ startDate, endDate }),
+  // Un rango invertido (inicio posterior al final) se ordena en vez de pedir un periodo vacío
+  setDates: (start, end) => {
+    const [startDate, endDate] = orderedRange(start, end);
+    set({ startDate, endDate });
+  },
   setHourRange: (hourRange) => set({ hourRange }),
   toggleSeverity: (s) =>
     set((st) => {
       const has = st.severities.includes(s);
       // Siempre debe quedar al menos una severidad seleccionada
       if (has && st.severities.length === 1) return st;
-      return { severities: has ? st.severities.filter((x) => x !== s) : [...st.severities, s].sort() };
+      return { severities: has ? st.severities.filter((x) => x !== s) : [...st.severities, s].sort((a, b) => a - b) };
     }),
   setWorkzoneOnly: (workzoneOnly) => set({ workzoneOnly }),
   reset: () => set(initial),
