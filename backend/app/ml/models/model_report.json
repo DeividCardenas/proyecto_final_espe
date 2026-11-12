@@ -1,518 +1,691 @@
 {
-  "trained_at": "2026-10-24T00:15:11.893546+00:00",
-  "n_rows": 418170,
+  "trained_at": "2026-11-12T20:25:36.056849+00:00",
+  "n_rows": 424304,
+  "n_train": 257618,
+  "n_val": 57505,
+  "n_test": 109181,
+  "windows": {
+    "train": "2023-01-01 -> 2025-05-13",
+    "val": "2025-05-13 -> 2025-11-13",
+    "test": "2025-11-13 -> 2026-11-13"
+  },
+  "validation_design": "Partici\u00f3n temporal train/val/test; hiperpar\u00e1metros, umbral y ganador elegidos en validaci\u00f3n; grid_density calculada s\u00f3lo con el pasado de cada partici\u00f3n; test usado una vez.",
+  "class_weighting": "none (probabilidades calibradas)",
   "class_distribution": {
-    "Moderado": 0.7399598249515748,
-    "Bajo": 0.2443192959801038,
-    "Cr\u00edtico": 0.015720879068321494
+    "Moderado": 0.7402664127606622,
+    "Bajo": 0.2439689467928655,
+    "Cr\u00edtico": 0.01576464044647234
+  },
+  "class_distribution_test": {
+    "Moderado": 0.7561755250455665,
+    "Bajo": 0.22943552449602037,
+    "Cr\u00edtico": 0.014388950458413093
   },
   "thresholds_required": {
     "auc_roc": 0.7,
     "recall_critical": 0.6,
-    "precision_critical": 0.65,
+    "lift_critical": 3.0,
     "cv_variance": 0.05
   },
+  "decision_rule": "Cr\u00edtico si P(Cr\u00edtico) >= umbral elegido en validaci\u00f3n para recall >= 0.60",
   "models": {
     "xgboost": {
       "best_params": {
         "max_depth": 6,
-        "min_child_weight": 10
+        "min_child_weight": 1
       },
+      "validation": {
+        "params": {
+          "max_depth": 6,
+          "min_child_weight": 1
+        },
+        "val_auc_macro": 0.7279897243396172,
+        "val_auc_critical": 0.8680415869554093,
+        "val_average_precision_critical": 0.13836816821164633,
+        "val_log_loss": 0.5658711581129148
+      },
+      "validation_grid": [
+        {
+          "params": {
+            "max_depth": 4,
+            "min_child_weight": 1
+          },
+          "val_auc_macro": 0.7222683531674717,
+          "val_auc_critical": 0.8678540876748945,
+          "val_average_precision_critical": 0.1336408011271741,
+          "val_log_loss": 0.5693190532157635
+        },
+        {
+          "params": {
+            "max_depth": 4,
+            "min_child_weight": 10
+          },
+          "val_auc_macro": 0.7221156299567785,
+          "val_auc_critical": 0.8678702002927378,
+          "val_average_precision_critical": 0.1335875792067852,
+          "val_log_loss": 0.5694102098600772
+        },
+        {
+          "params": {
+            "max_depth": 6,
+            "min_child_weight": 1
+          },
+          "val_auc_macro": 0.7279897243396172,
+          "val_auc_critical": 0.8680415869554093,
+          "val_average_precision_critical": 0.13836816821164633,
+          "val_log_loss": 0.5658711581129148
+        },
+        {
+          "params": {
+            "max_depth": 6,
+            "min_child_weight": 10
+          },
+          "val_auc_macro": 0.7277552231100645,
+          "val_auc_critical": 0.8676966094547456,
+          "val_average_precision_critical": 0.13607868165235026,
+          "val_log_loss": 0.5659588629341482
+        }
+      ],
       "cv": {
         "params": {
           "max_depth": 6,
-          "min_child_weight": 10
+          "min_child_weight": 1
         },
-        "auc_mean": 0.7036835229821534,
-        "auc_std": 0.0040465930963371356,
-        "auc_cv_variation": 0.005750586683041837,
-        "recall_critical_mean": 0.5302373233407717
+        "scheme": "GroupKFold(5) por bloques de ~2 km",
+        "auc_folds": [
+          0.735968904022076,
+          0.7287173667350876,
+          0.7223435758568771,
+          0.7311634723943307,
+          0.7241292204706657
+        ],
+        "auc_mean": 0.7284645078958075,
+        "auc_std": 0.00489744493099496,
+        "auc_cv_variation": 0.00672296986045536
       },
-      "cv_folds": [
-        {
-          "auc_roc_ovr_macro": 0.7048337481642405,
-          "auc_roc_critical_vs_rest": 0.8497043130312578,
-          "recall_critical": 0.5570291777188329,
-          "precision_critical": 0.09186351706036745,
-          "recall_macro": 0.5631645115678005
-        },
-        {
-          "auc_roc_ovr_macro": 0.710168179261936,
-          "auc_roc_critical_vs_rest": 0.856422353299301,
-          "recall_critical": 0.583554376657825,
-          "precision_critical": 0.09201171058134672,
-          "recall_macro": 0.5700499063371262
-        },
-        {
-          "auc_roc_ovr_macro": 0.7043978293830255,
-          "auc_roc_critical_vs_rest": 0.8386700189122434,
-          "recall_critical": 0.493368700265252,
-          "precision_critical": 0.08255659121171771,
-          "recall_macro": 0.5447527555676739
-        },
-        {
-          "auc_roc_ovr_macro": 0.700761145242616,
-          "auc_roc_critical_vs_rest": 0.839055045823143,
-          "recall_critical": 0.5145888594164456,
-          "precision_critical": 0.08347676419965576,
-          "recall_macro": 0.548978595519709
-        },
-        {
-          "auc_roc_ovr_macro": 0.6982567128589489,
-          "auc_roc_critical_vs_rest": 0.8354755386759452,
-          "recall_critical": 0.5026455026455027,
-          "precision_critical": 0.08207343412526998,
-          "recall_macro": 0.5433371885137782
-        }
-      ],
-      "cv_grid": [
-        {
-          "params": {
-            "max_depth": 4,
-            "min_child_weight": 1
-          },
-          "auc_mean": 0.6942089927336021,
-          "auc_std": 0.0037402235793244174,
-          "auc_cv_variation": 0.005387748672912542,
-          "recall_critical_mean": 0.6516567723464275
-        },
-        {
-          "params": {
-            "max_depth": 4,
-            "min_child_weight": 10
-          },
-          "auc_mean": 0.6945427387651744,
-          "auc_std": 0.003874826952432962,
-          "auc_cv_variation": 0.005578961144021182,
-          "recall_critical_mean": 0.6627861283033697
-        },
-        {
-          "params": {
-            "max_depth": 6,
-            "min_child_weight": 1
-          },
-          "auc_mean": 0.7033057451402349,
-          "auc_std": 0.0037269031904284653,
-          "auc_cv_variation": 0.005299122346406175,
-          "recall_critical_mean": 0.497893422031353
-        },
-        {
-          "params": {
-            "max_depth": 6,
-            "min_child_weight": 10
-          },
-          "auc_mean": 0.7036835229821534,
-          "auc_std": 0.0040465930963371356,
-          "auc_cv_variation": 0.005750586683041837,
-          "recall_critical_mean": 0.5302373233407717
-        }
-      ],
       "test_argmax": {
-        "auc_roc_ovr_macro": 0.7078862062528808,
-        "auc_roc_critical_vs_rest": 0.8634862512278927,
-        "recall_critical": 0.6684410646387833,
-        "precision_critical": 0.07442845046570702,
-        "recall_macro": 0.586176257903371
+        "auc_roc_ovr_macro": 0.7263232586985348,
+        "auc_roc_critical_vs_rest": 0.8828348810812273,
+        "recall_critical": 0.008911521323997454,
+        "precision_critical": 0.23728813559322035,
+        "recall_macro": 0.3457266856424032
+      },
+      "test_decision": {
+        "threshold": 0.04519994184374809,
+        "auc_roc_ovr_macro": 0.7263232586985348,
+        "auc_roc_critical_vs_rest": 0.8828348810812273,
+        "recall_critical": 0.5907065563335455,
+        "precision_critical": 0.10512007249660173,
+        "recall_macro": 0.511164929336576,
+        "average_precision": 0.1293891329802878,
+        "base_rate": 0.014388950458413093,
+        "lift": 7.305610843571912
       },
       "test_f1_threshold": {
-        "threshold": 0.7515979409217834,
-        "auc_roc_ovr_macro": 0.7078862062528808,
-        "auc_roc_critical_vs_rest": 0.8634862512278927,
-        "recall_critical": 0.3490494296577947,
-        "precision_critical": 0.1588785046728972,
-        "recall_macro": 0.5201237835318732
+        "threshold": 0.12511815130710602,
+        "auc_roc_ovr_macro": 0.7263232586985348,
+        "auc_roc_critical_vs_rest": 0.8828348810812273,
+        "recall_critical": 0.279439847231063,
+        "precision_critical": 0.17462211614956244,
+        "recall_macro": 0.4284173291618127
+      },
+      "calibration_critical": {
+        "brier": 0.01326047327322649,
+        "ece": 0.0018573440440370357,
+        "mean_predicted": 0.016246294502450128,
+        "observed_rate": 0.014388950458413093,
+        "reliability": [
+          {
+            "mean_predicted": 0.00065,
+            "observed_rate": 0.00027,
+            "n": 10918
+          },
+          {
+            "mean_predicted": 0.00154,
+            "observed_rate": 0.00027,
+            "n": 10918
+          },
+          {
+            "mean_predicted": 0.00251,
+            "observed_rate": 0.00082,
+            "n": 10919
+          },
+          {
+            "mean_predicted": 0.0035,
+            "observed_rate": 0.0022,
+            "n": 10917
+          },
+          {
+            "mean_predicted": 0.00472,
+            "observed_rate": 0.00247,
+            "n": 10918
+          },
+          {
+            "mean_predicted": 0.00638,
+            "observed_rate": 0.00385,
+            "n": 10919
+          },
+          {
+            "mean_predicted": 0.00885,
+            "observed_rate": 0.00788,
+            "n": 10917
+          },
+          {
+            "mean_predicted": 0.0133,
+            "observed_rate": 0.01136,
+            "n": 10918
+          },
+          {
+            "mean_predicted": 0.02374,
+            "observed_rate": 0.02171,
+            "n": 10918
+          },
+          {
+            "mean_predicted": 0.09726,
+            "observed_rate": 0.09305,
+            "n": 10919
+          }
+        ]
       },
       "confusion_matrix": [
         [
-          14208,
-          4955,
-          1270
+          979,
+          23248,
+          823
         ],
         [
-          27796,
-          24429,
-          9661
+          873,
+          74610,
+          7077
         ],
         [
-          124,
-          312,
-          879
+          1,
+          642,
+          928
         ]
       ],
+      "confusion_matrix_rule": "regla de decisi\u00f3n publicada (umbral de validaci\u00f3n)",
       "classification_report": {
         "0": {
-          "precision": 0.337257880744398,
-          "recall": 0.6953457642049625,
-          "f1-score": 0.4542126884161059,
-          "support": 20433.0
+          "precision": 0.5283324338909876,
+          "recall": 0.03908183632734531,
+          "f1-score": 0.07277998736200424,
+          "support": 25050.0
         },
         "1": {
-          "precision": 0.8226360452586207,
-          "recall": 0.3947419448663672,
-          "f1-score": 0.5334891135812714,
-          "support": 61886.0
+          "precision": 0.7574619289340101,
+          "recall": 0.9037063953488372,
+          "f1-score": 0.8241466917044074,
+          "support": 82560.0
         },
         "2": {
-          "precision": 0.07442845046570702,
-          "recall": 0.6684410646387833,
-          "f1-score": 0.13394285714285714,
-          "support": 1315.0
+          "precision": 0.10512007249660173,
+          "recall": 0.5907065563335455,
+          "f1-score": 0.178478699874988,
+          "support": 1571.0
         },
-        "accuracy": 0.4724872659444723,
+        "accuracy": 0.7008270669805186,
         "macro avg": {
-          "precision": 0.4114407921562419,
-          "recall": 0.586176257903371,
-          "f1-score": 0.3738815530467448,
-          "support": 83634.0
+          "precision": 0.4636381451071998,
+          "recall": 0.511164929336576,
+          "f1-score": 0.3584684596471332,
+          "support": 109181.0
         },
         "weighted avg": {
-          "precision": 0.6922868449014479,
-          "recall": 0.4724872659444723,
-          "f1-score": 0.5078385585125633,
-          "support": 83634.0
+          "precision": 0.6955049684070788,
+          "recall": 0.7008270669805186,
+          "f1-score": 0.6424659930577452,
+          "support": 109181.0
         }
       },
       "feature_importance": [
         {
           "feature": "num__has_pedestrian",
-          "importance": 0.1187034547328949
+          "importance": 0.058063630014657974
         },
         {
-          "feature": "num__has_cyclist",
-          "importance": 0.07341981679201126
-        },
-        {
-          "feature": "cat__first_crash_type_PEDESTRIAN",
-          "importance": 0.05644726753234863
-        },
-        {
-          "feature": "num__has_motorcycle",
-          "importance": 0.04405190050601959
-        },
-        {
-          "feature": "cat__first_crash_type_SIDESWIPE SAME DIRECTION",
-          "importance": 0.0356302335858345
-        },
-        {
-          "feature": "cat__first_crash_type_PARKED MOTOR VEHICLE",
-          "importance": 0.030998539179563522
-        },
-        {
-          "feature": "num__num_units",
-          "importance": 0.022993113845586777
-        },
-        {
-          "feature": "num__is_night",
-          "importance": 0.022758780047297478
-        },
-        {
-          "feature": "cat__first_crash_type_FIXED OBJECT",
-          "importance": 0.02253895252943039
+          "feature": "num__intersection_related",
+          "importance": 0.048291753977537155
         },
         {
           "feature": "cat__first_crash_type_ANGLE",
-          "importance": 0.02226322330534458
+          "importance": 0.0418783538043499
         },
         {
-          "feature": "cat__first_crash_type_HEAD ON",
-          "importance": 0.020204057916998863
+          "feature": "cat__first_crash_type_PEDESTRIAN",
+          "importance": 0.03998669609427452
         },
         {
-          "feature": "cat__first_crash_type_PEDALCYCLIST",
-          "importance": 0.019577864557504654
+          "feature": "num__num_units",
+          "importance": 0.032379910349845886
         },
         {
-          "feature": "cat__trafficway_type_PARKING LOT",
-          "importance": 0.019022010266780853
+          "feature": "num__has_cyclist",
+          "importance": 0.026979153975844383
         },
         {
-          "feature": "cat__first_crash_type_REAR END",
-          "importance": 0.01857059821486473
-        },
-        {
-          "feature": "cat__prim_contributory_cause_PHYSICAL CONDITION OF DRIVER",
-          "importance": 0.018362153321504593
-        },
-        {
-          "feature": "cat__prim_contributory_cause_DISREGARDING TRAFFIC SIGNALS",
-          "importance": 0.018258890137076378
-        },
-        {
-          "feature": "cat__prim_contributory_cause_IMPROPER BACKING",
-          "importance": 0.01595272682607174
-        },
-        {
-          "feature": "cat__first_crash_type_REAR TO FRONT",
-          "importance": 0.013890879228711128
+          "feature": "cat__first_crash_type_FIXED OBJECT",
+          "importance": 0.024931209161877632
         },
         {
           "feature": "cat__first_crash_type_TURNING",
-          "importance": 0.013090595602989197
+          "importance": 0.022842925041913986
         },
         {
-          "feature": "cat__surface_group_UNKNOWN",
-          "importance": 0.01226890366524458
+          "feature": "num__is_night",
+          "importance": 0.020607149228453636
+        },
+        {
+          "feature": "num__has_motorcycle",
+          "importance": 0.020335450768470764
+        },
+        {
+          "feature": "cat__lighting_group_DARK_LIGHTED",
+          "importance": 0.018391603603959084
+        },
+        {
+          "feature": "cat__first_crash_type_SIDESWIPE SAME DIRECTION",
+          "importance": 0.018145903944969177
+        },
+        {
+          "feature": "cat__trafficway_type_PARKING LOT",
+          "importance": 0.016946295276284218
+        },
+        {
+          "feature": "cat__prim_contributory_cause_FAILING TO YIELD RIGHT-OF-WAY",
+          "importance": 0.01612473651766777
+        },
+        {
+          "feature": "cat__prim_contributory_cause_IMPROPER BACKING",
+          "importance": 0.01536005362868309
+        },
+        {
+          "feature": "cat__prim_contributory_cause_DISREGARDING TRAFFIC SIGNALS",
+          "importance": 0.015032733790576458
+        },
+        {
+          "feature": "cat__first_crash_type_HEAD ON",
+          "importance": 0.01292758621275425
+        },
+        {
+          "feature": "cat__first_crash_type_PARKED MOTOR VEHICLE",
+          "importance": 0.01211086567491293
+        },
+        {
+          "feature": "cat__traffic_control_device_UNKNOWN",
+          "importance": 0.011452230624854565
+        },
+        {
+          "feature": "cat__first_crash_type_REAR END",
+          "importance": 0.011441564187407494
         }
       ],
-      "fit_seconds": 100.7
+      "fit_seconds": 98.5
     },
     "random_forest": {
       "best_params": {
         "max_depth": 15,
         "min_samples_leaf": 10
       },
+      "validation": {
+        "params": {
+          "max_depth": 15,
+          "min_samples_leaf": 10
+        },
+        "val_auc_macro": 0.7121111381773053,
+        "val_auc_critical": 0.853571917120082,
+        "val_average_precision_critical": 0.11555507122099848,
+        "val_log_loss": 0.5770265156737019
+      },
+      "validation_grid": [
+        {
+          "params": {
+            "max_depth": 12,
+            "min_samples_leaf": 10
+          },
+          "val_auc_macro": 0.706588722899029,
+          "val_auc_critical": 0.847956679427013,
+          "val_average_precision_critical": 0.11151826053297487,
+          "val_log_loss": 0.5802823475557232
+        },
+        {
+          "params": {
+            "max_depth": 12,
+            "min_samples_leaf": 30
+          },
+          "val_auc_macro": 0.7052505470785871,
+          "val_auc_critical": 0.8460748142149712,
+          "val_average_precision_critical": 0.10903357071246529,
+          "val_log_loss": 0.5809009536742084
+        },
+        {
+          "params": {
+            "max_depth": 15,
+            "min_samples_leaf": 10
+          },
+          "val_auc_macro": 0.7121111381773053,
+          "val_auc_critical": 0.853571917120082,
+          "val_average_precision_critical": 0.11555507122099848,
+          "val_log_loss": 0.5770265156737019
+        },
+        {
+          "params": {
+            "max_depth": 15,
+            "min_samples_leaf": 30
+          },
+          "val_auc_macro": 0.7102874009082633,
+          "val_auc_critical": 0.8501666298790769,
+          "val_average_precision_critical": 0.10999863109411726,
+          "val_log_loss": 0.5779640770064827
+        }
+      ],
       "cv": {
         "params": {
           "max_depth": 15,
           "min_samples_leaf": 10
         },
-        "auc_mean": 0.6943460066807262,
-        "auc_std": 0.004544635404556001,
-        "auc_cv_variation": 0.006545202767538508,
-        "recall_critical_mean": 0.5249252663045766
+        "scheme": "GroupKFold(5) por bloques de ~2 km",
+        "auc_folds": [
+          0.725866445029141,
+          0.7160714678176868,
+          0.7081172253309657,
+          0.7141136593643783,
+          0.7160592633603127
+        ],
+        "auc_mean": 0.7160456121804969,
+        "auc_std": 0.005710365529967764,
+        "auc_cv_variation": 0.007974862819951653
       },
-      "cv_folds": [
-        {
-          "auc_roc_ovr_macro": 0.6933907059935934,
-          "auc_roc_critical_vs_rest": 0.8552160703877251,
-          "recall_critical": 0.5145888594164456,
-          "precision_critical": 0.10178384050367262,
-          "recall_macro": 0.5482406923458389
-        },
-        {
-          "auc_roc_ovr_macro": 0.7006115411683461,
-          "auc_roc_critical_vs_rest": 0.8628766349748385,
-          "recall_critical": 0.5649867374005305,
-          "precision_critical": 0.1143317230273752,
-          "recall_macro": 0.5682784905183467
-        },
-        {
-          "auc_roc_ovr_macro": 0.695599270791465,
-          "auc_roc_critical_vs_rest": 0.8511191100791826,
-          "recall_critical": 0.506631299734748,
-          "precision_critical": 0.10063224446786091,
-          "recall_macro": 0.5488041663355885
-        },
-        {
-          "auc_roc_ovr_macro": 0.6955357568941127,
-          "auc_roc_critical_vs_rest": 0.8536523827933281,
-          "recall_critical": 0.5225464190981433,
-          "precision_critical": 0.10244409776391056,
-          "recall_macro": 0.5546588764978496
-        },
-        {
-          "auc_roc_ovr_macro": 0.6865927585561136,
-          "auc_roc_critical_vs_rest": 0.839186880313796,
-          "recall_critical": 0.5158730158730159,
-          "precision_critical": 0.09415741187831965,
-          "recall_macro": 0.543795444153078
-        }
-      ],
-      "cv_grid": [
-        {
-          "params": {
-            "max_depth": 12,
-            "min_samples_leaf": 10
-          },
-          "auc_mean": 0.6830969880894844,
-          "auc_std": 0.004947428351189383,
-          "auc_cv_variation": 0.00724264407171018,
-          "recall_critical_mean": 0.5869689697275904
-        },
-        {
-          "params": {
-            "max_depth": 12,
-            "min_samples_leaf": 30
-          },
-          "auc_mean": 0.6781059462495769,
-          "auc_std": 0.004257429851824587,
-          "auc_cv_variation": 0.006278413978481233,
-          "recall_critical_mean": 0.6331045710356056
-        },
-        {
-          "params": {
-            "max_depth": 15,
-            "min_samples_leaf": 10
-          },
-          "auc_mean": 0.6943460066807262,
-          "auc_std": 0.004544635404556001,
-          "auc_cv_variation": 0.006545202767538508,
-          "recall_critical_mean": 0.5249252663045766
-        },
-        {
-          "params": {
-            "max_depth": 15,
-            "min_samples_leaf": 30
-          },
-          "auc_mean": 0.6881332097876547,
-          "auc_std": 0.003944696881521772,
-          "auc_cv_variation": 0.00573246113603358,
-          "recall_critical_mean": 0.5997024686679859
-        }
-      ],
       "test_argmax": {
-        "auc_roc_ovr_macro": 0.6930116012006176,
-        "auc_roc_critical_vs_rest": 0.8587605105003503,
-        "recall_critical": 0.6304182509505704,
-        "precision_critical": 0.0843765903307888,
-        "recall_macro": 0.5744053513528794
+        "auc_roc_ovr_macro": 0.7135230164012549,
+        "auc_roc_critical_vs_rest": 0.8704712676579044,
+        "recall_critical": 0.0,
+        "precision_critical": 0.0,
+        "recall_macro": 0.3347182572838818
+      },
+      "test_decision": {
+        "threshold": 0.03208203638131064,
+        "auc_roc_ovr_macro": 0.7135230164012549,
+        "auc_roc_critical_vs_rest": 0.8704712676579044,
+        "recall_critical": 0.5989815404201145,
+        "precision_critical": 0.09237263178560912,
+        "recall_macro": 0.5008395265712068,
+        "average_precision": 0.11128606103137871,
+        "base_rate": 0.014388950458413093,
+        "lift": 6.419692113930356
       },
       "test_f1_threshold": {
-        "threshold": 0.5993098703274957,
-        "auc_roc_ovr_macro": 0.6930116012006176,
-        "auc_roc_critical_vs_rest": 0.8587605105003503,
-        "recall_critical": 0.376425855513308,
-        "precision_critical": 0.1388888888888889,
-        "recall_macro": 0.5178613016319895
+        "threshold": 0.06515816642680947,
+        "auc_roc_ovr_macro": 0.7135230164012549,
+        "auc_roc_critical_vs_rest": 0.8704712676579044,
+        "recall_critical": 0.30362826225334183,
+        "precision_critical": 0.13520408163265307,
+        "recall_macro": 0.4248448291977865
+      },
+      "calibration_critical": {
+        "brier": 0.013428923538220857,
+        "ece": 0.00590390276669751,
+        "mean_predicted": 0.0162103699277814,
+        "observed_rate": 0.014388950458413093,
+        "reliability": [
+          {
+            "mean_predicted": 0.00316,
+            "observed_rate": 0.00018,
+            "n": 10918
+          },
+          {
+            "mean_predicted": 0.00471,
+            "observed_rate": 0.00092,
+            "n": 10918
+          },
+          {
+            "mean_predicted": 0.00563,
+            "observed_rate": 0.00073,
+            "n": 10918
+          },
+          {
+            "mean_predicted": 0.00688,
+            "observed_rate": 0.00229,
+            "n": 10918
+          },
+          {
+            "mean_predicted": 0.00824,
+            "observed_rate": 0.0033,
+            "n": 10918
+          },
+          {
+            "mean_predicted": 0.01018,
+            "observed_rate": 0.00604,
+            "n": 10919
+          },
+          {
+            "mean_predicted": 0.01307,
+            "observed_rate": 0.00678,
+            "n": 10917
+          },
+          {
+            "mean_predicted": 0.01754,
+            "observed_rate": 0.01182,
+            "n": 10918
+          },
+          {
+            "mean_predicted": 0.02454,
+            "observed_rate": 0.02326,
+            "n": 10918
+          },
+          {
+            "mean_predicted": 0.06815,
+            "observed_rate": 0.08856,
+            "n": 10919
+          }
+        ]
       },
       "confusion_matrix": [
         [
-          14407,
-          4956,
-          1070
+          115,
+          23996,
+          939
         ],
         [
-          29966,
-          23994,
-          7926
+          36,
+          74217,
+          8307
         ],
         [
-          145,
-          341,
-          829
+          0,
+          630,
+          941
         ]
       ],
+      "confusion_matrix_rule": "regla de decisi\u00f3n publicada (umbral de validaci\u00f3n)",
       "classification_report": {
         "0": {
-          "precision": 0.32362190574599037,
-          "recall": 0.7050849116625068,
-          "f1-score": 0.44362673399947655,
-          "support": 20433.0
+          "precision": 0.7615894039735099,
+          "recall": 0.004590818363273453,
+          "f1-score": 0.009126621959446054,
+          "support": 25050.0
         },
         "1": {
-          "precision": 0.8191594687788057,
-          "recall": 0.3877128914455612,
-          "f1-score": 0.5263169439661318,
-          "support": 61886.0
+          "precision": 0.7508574203534899,
+          "recall": 0.8989462209302326,
+          "f1-score": 0.8182554864032017,
+          "support": 82560.0
         },
         "2": {
-          "precision": 0.0843765903307888,
-          "recall": 0.6304182509505704,
-          "f1-score": 0.1488330341113106,
-          "support": 1315.0
+          "precision": 0.09237263178560912,
+          "recall": 0.5989815404201145,
+          "f1-score": 0.16006123490389523,
+          "support": 1571.0
         },
-        "accuracy": 0.46906760408446324,
+        "accuracy": 0.689433143129299,
         "macro avg": {
-          "precision": 0.4090526549518616,
-          "recall": 0.5744053513528794,
-          "f1-score": 0.3729255706923063,
-          "support": 83634.0
+          "precision": 0.5349398187042029,
+          "recall": 0.5008395265712068,
+          "f1-score": 0.3291477810888476,
+          "support": 109181.0
         },
         "weighted avg": {
-          "precision": 0.6865392603634644,
-          "recall": 0.46906760408446324,
-          "f1-score": 0.5001792439672348,
-          "support": 83634.0
+          "precision": 0.7438448136439101,
+          "recall": 0.689433143129299,
+          "f1-score": 0.6231418565278436,
+          "support": 109181.0
         }
       },
       "feature_importance": [
         {
-          "feature": "num__has_pedestrian",
-          "importance": 0.1252143569097733
-        },
-        {
-          "feature": "cat__first_crash_type_PEDESTRIAN",
-          "importance": 0.1062367826992086
-        },
-        {
           "feature": "num__num_units",
-          "importance": 0.05774229984452874
-        },
-        {
-          "feature": "num__has_cyclist",
-          "importance": 0.050019835990630764
-        },
-        {
-          "feature": "cat__first_crash_type_PARKED MOTOR VEHICLE",
-          "importance": 0.041196979944271475
-        },
-        {
-          "feature": "cat__first_crash_type_SIDESWIPE SAME DIRECTION",
-          "importance": 0.04062883034559017
-        },
-        {
-          "feature": "num__has_motorcycle",
-          "importance": 0.036780115946357064
-        },
-        {
-          "feature": "cat__first_crash_type_PEDALCYCLIST",
-          "importance": 0.03345775181647671
+          "importance": 0.08920932644279539
         },
         {
           "feature": "num__latitude",
-          "importance": 0.02914071256010501
+          "importance": 0.07007765202440956
+        },
+        {
+          "feature": "num__intersection_related",
+          "importance": 0.06019208739554412
         },
         {
           "feature": "num__longitude",
-          "importance": 0.026618151568908153
+          "importance": 0.05621876284807075
         },
         {
-          "feature": "num__hour_cos",
-          "importance": 0.025466483732716004
+          "feature": "cat__first_crash_type_ANGLE",
+          "importance": 0.04168580988970658
         },
         {
           "feature": "num__grid_density",
-          "importance": 0.02476739219241867
+          "importance": 0.04025682551897604
+        },
+        {
+          "feature": "num__hour_cos",
+          "importance": 0.0337496936449607
         },
         {
           "feature": "num__aadt_log",
-          "importance": 0.020705095331590376
-        },
-        {
-          "feature": "cat__first_crash_type_REAR END",
-          "importance": 0.01996743376715651
+          "importance": 0.0332968195287901
         },
         {
           "feature": "num__crash_hour",
-          "importance": 0.01912474714453126
+          "importance": 0.030757083532146172
         },
         {
-          "feature": "cat__trafficway_type_FOUR WAY",
-          "importance": 0.018863400901154043
-        },
-        {
-          "feature": "num__hit_and_run",
-          "importance": 0.016339009113954882
+          "feature": "cat__lighting_group_DARK_LIGHTED",
+          "importance": 0.027082368462642396
         },
         {
           "feature": "num__posted_speed_limit",
-          "importance": 0.01595534647035177
+          "importance": 0.025606694399814455
         },
         {
-          "feature": "cat__first_crash_type_FIXED OBJECT",
-          "importance": 0.015949060661984798
+          "feature": "cat__prim_contributory_cause_FAILING TO YIELD RIGHT-OF-WAY",
+          "importance": 0.022569038357260388
         },
         {
           "feature": "num__crash_month",
-          "importance": 0.014416522406197188
+          "importance": 0.022494695914013943
+        },
+        {
+          "feature": "cat__first_crash_type_SIDESWIPE SAME DIRECTION",
+          "importance": 0.022393503438733434
+        },
+        {
+          "feature": "num__has_pedestrian",
+          "importance": 0.02134670485698202
+        },
+        {
+          "feature": "cat__first_crash_type_PEDESTRIAN",
+          "importance": 0.02129509377744775
+        },
+        {
+          "feature": "cat__trafficway_type_PARKING LOT",
+          "importance": 0.021212630435172238
+        },
+        {
+          "feature": "num__hour_sin",
+          "importance": 0.02112044970006886
+        },
+        {
+          "feature": "cat__first_crash_type_TURNING",
+          "importance": 0.020325680680664083
+        },
+        {
+          "feature": "cat__trafficway_type_FOUR WAY",
+          "importance": 0.01843157557350525
         }
       ],
-      "fit_seconds": 95.0
+      "fit_seconds": 57.1
     }
   },
   "winner": "xgboost",
+  "selection_metric": "val_auc_macro",
   "gates": {
     "auc_roc": true,
-    "recall_critical": true,
-    "precision_critical": false,
+    "recall_critical": false,
+    "lift_critical": true,
     "cv_variance": true
+  },
+  "ablation_pre_crash_only": {
+    "features": [
+      "hour_sin",
+      "hour_cos",
+      "crash_hour",
+      "day_of_week",
+      "crash_month",
+      "is_weekend",
+      "is_rush_hour",
+      "is_night",
+      "posted_speed_limit",
+      "aadt_log",
+      "aadt_imputed",
+      "active_workzone",
+      "intersection_related",
+      "grid_density",
+      "latitude",
+      "longitude",
+      "weather_group",
+      "lighting_group",
+      "surface_group",
+      "trafficway_type",
+      "traffic_control_device"
+    ],
+    "auc_roc_ovr_macro": 0.6316191868153759,
+    "auc_roc_critical_vs_rest": 0.6948328538157127,
+    "average_precision_critical": 0.03244550901197868
+  },
+  "provenance": {
+    "git_commit": null,
+    "python": "3.11.18",
+    "versions": {
+      "scikit-learn": "1.6.1",
+      "xgboost": "2.1.4",
+      "pandas": "2.2.3",
+      "numpy": "1.26.4",
+      "joblib": "1.4.2"
+    },
+    "input": {
+      "path": "/data/processed/features_gold.parquet",
+      "sha256": "711e9ce51c3664a4627485e76defa48913bda71a732f3008d127885bf4700366"
+    },
+    "data_fingerprint": "6fcda6da4d9a261f2e909e3ed08cf4a37076de2d4275e9daf0c38e3720d44390",
+    "n_rows": 424304
   },
   "artifact": {
     "path": "/app/app/ml/models/chicago_risk_xgboost.joblib",
-    "size_mb": 1.98,
-    "load_ms": 66.2,
-    "single_inference_ms": 4.72,
+    "size_mb": 2.23,
+    "load_ms": 70.9,
+    "trained_on": "todos los datos (hiperpar\u00e1metros y umbral de validaci\u00f3n)",
+    "single_inference_ms": 4.33,
     "gate_size_lt_100mb": true
   },
-  "grid_cells_scored": 2339
+  "spatial_oof": {
+    "auc_roc_ovr_macro": 0.7348499859055707,
+    "auc_roc_critical_vs_rest": 0.86760939964298,
+    "calibration_critical": {
+      "brier": 0.014431146216739826,
+      "ece": 0.0010064599809455762,
+      "mean_predicted": 0.015429160051446324,
+      "observed_rate": 0.01576464044647234
+    }
+  },
+  "grid_cells_scored": 2341
 }
