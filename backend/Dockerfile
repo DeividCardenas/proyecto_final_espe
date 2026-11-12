@@ -31,7 +31,8 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PATH="/opt/venv/bin:$PATH" \
     PYTHONPATH=/app \
-    PORT=8000
+    PORT=8000 \
+    WEB_CONCURRENCY=2
 
 WORKDIR /app
 
@@ -65,4 +66,5 @@ HEALTHCHECK --interval=15s --timeout=5s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8000/api/v1/health || exit 1
 
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# Número de procesos: variable WEB_CONCURRENCY (Uvicorn la lee directamente; compose la fija)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

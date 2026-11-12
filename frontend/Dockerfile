@@ -1,7 +1,8 @@
 # ==============================================================================
 # ETAPA 1: Construcción y Compilación de Assets (Node.js)
 # ==============================================================================
-FROM node:20-alpine AS builder
+# Node 22 LTS (Node 20 dejó de recibir parches en abril de 2026)
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
