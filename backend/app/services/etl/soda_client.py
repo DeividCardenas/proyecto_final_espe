@@ -278,7 +278,8 @@ def ingest(dataset: str, since: str | None = None, limit: int | None = None,
             df = df[[*spec.columns, UPDATED_COL]].astype("string")
             df.to_parquet(out_dir / f"part-{stamp}-{i:05d}.parquet", compression="snappy", index=False)
             total += len(df)
-            if spec.date_field:
+            # vehicles/people filtran por crash_date pero no lo descargan como columna
+            if spec.date_field and spec.date_field in df.columns:
                 max_value = _max_str(max_value, df[spec.date_field])
             max_updated = _max_str(max_updated, df[UPDATED_COL])
             logger.info("[%s] página %d: %d filas (acumulado %d/%d)", dataset, i, len(df), total, target)
