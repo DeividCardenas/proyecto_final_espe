@@ -32,6 +32,11 @@ LOAD_ORDER = ["aadt", "permits", "crashes", "vehicles", "people"]
 
 VALID_SEX = {"M", "F", "X"}
 
+# Columnas auxiliares de Bronze (orden de ingesta y marca de Socrata): sirven para
+# deduplicar quedándose con la versión más reciente y no se cargan a Silver.
+PART_COL = "_part"
+HELPER_COLS = (PART_COL, "_updated_at")
+
 
 # ------------------------------------------------------------------------------
 # Utilidades de lectura y tipado
@@ -41,7 +46,34 @@ def read_bronze(dataset: str) -> pd.DataFrame:
     parts = sorted(folder.glob("part-*.parquet"))
     if not parts:
         raise FileNotFoundError(f"No hay archivos Bronze para '{dataset}' en {folder}. Ejecute soda_client primero.")
-    return pd.concat((pd.read_parquet(p) for p in parts), ignore_index=True)
+    # Los nombres part-<UTC>-<página> ordenan cronológicamente: en caso de
+    # duplicados gana la descarga más reciente (registro corregido en origen).
+    frames = []
+    for i, p in enumerate(parts):
+        f = pd.read_parquet(p)
+        f[PART_COL] = i
+        frames.append(f)
+    return pd.concat(frames, ignore_index=True)
+
+
+def latest_first_order(df: pd.DataFrame) -> pd.DataFrame:
+    """Ordena de forma estable por orden de ingesta (y ``:updated_at``) para ``keep="last"``."""
+    keys = [c for c in (PART_COL, "_updated_at") if c in df.columns]
+    if not keys:
+        return df
+    # clean_str convierte todo a texto: se reordena con claves tipadas
+    # (numérica para el part, fecha para :updated_at) y no lexicográficas.
+    order = pd.DataFrame(index=df.index)
+    if PART_COL in df.columns:
+        order[PART_COL] = pd.to_numeric(df[PART_COL], errors="coerce")
+    if "_updated_at" in df.columns:
+        order["_updated_at"] = pd.to_datetime(df["_updated_at"], errors="coerce", format="ISO8601")
+    idx = order.sort_values(keys, kind="stable", na_position="first").index
+    return df.loc[idx]
+
+
+def drop_helpers(df: pd.DataFrame) -> pd.DataFrame:
+    return df.drop(columns=[c for c in HELPER_COLS if c in df.columns])
 
 
 def to_int(s: pd.Series) -> pd.Series:
@@ -88,9 +120,11 @@ def clean_crashes(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     df["date_police_notified"] = to_ts(df["date_police_notified"])
     df = df[df["crash_date"].notna()]
 
-    # Deduplicación estricta por clave natural (se conserva la última notificación)
-    df = df.sort_values("date_police_notified").drop_duplicates("crash_record_id", keep="last")
+    # Deduplicación estricta por clave natural: se conserva la versión descargada
+    # más reciente (antes se ordenaba por date_police_notified y los NaT ganaban).
+    df = latest_first_order(df).drop_duplicates("crash_record_id", keep="last")
     n_dupes = n_raw - len(df)
+    df = drop_helpers(df)
 
     int_cols = ["posted_speed_limit", "lane_cnt", "num_units", "injuries_total", "injuries_fatal",
                 "injuries_incapacitating", "injuries_non_incapacitating", "injuries_reported_not_evident",
@@ -100,7 +134,8 @@ def clean_crashes(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     for c in ["injuries_total", "injuries_fatal", "injuries_incapacitating", "injuries_non_incapacitating",
               "injuries_reported_not_evident", "injuries_no_indication", "injuries_unknown"]:
         df[c] = df[c].fillna(0)
-    df.loc[~df["posted_speed_limit"].between(0, 70), "posted_speed_limit"] = pd.NA
+    # 0 mph no es un límite real: en el origen significa "no registrado"
+    df.loc[~df["posted_speed_limit"].between(1, 70), "posted_speed_limit"] = pd.NA
     for c in ["intersection_related_i", "hit_and_run_i", "work_zone_i"]:
         df[c] = to_bool(df[c])
     df["latitude"] = to_float(df["latitude"])
@@ -140,7 +175,7 @@ def clean_vehicles(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     df = df[df["crash_record_id"].notna() & df["crash_unit_id"].notna()]
     # Las unidades no motorizadas (peatones/ciclistas) no tienen vehicle_id en origen
     df["vehicle_id"] = df["vehicle_id"].fillna("U" + df["crash_unit_id"])
-    df = df.drop_duplicates(["crash_record_id", "vehicle_id"], keep="last")
+    df = drop_helpers(latest_first_order(df).drop_duplicates(["crash_record_id", "vehicle_id"], keep="last"))
     df["unit_no"] = to_int(df["unit_no"])
     df["occupant_cnt"] = to_int(df["occupant_cnt"])
     df["vehicle_year"] = to_int(df["vehicle_year"])
@@ -155,7 +190,7 @@ def clean_people(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     for c in df.columns:
         df[c] = clean_str(df[c])
     df = df[df["crash_record_id"].notna() & df["person_id"].notna()]
-    df = df.drop_duplicates(["crash_record_id", "person_id"], keep="last")
+    df = drop_helpers(latest_first_order(df).drop_duplicates(["crash_record_id", "person_id"], keep="last"))
     df["age"] = to_int(df["age"])
     df.loc[~df["age"].between(1, 110), "age"] = pd.NA
     df["sex"] = df["sex"].str.upper().where(df["sex"].str.upper().isin(VALID_SEX), pd.NA)
@@ -165,6 +200,7 @@ def clean_people(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
 def clean_permits(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     n_raw = len(df)
     df = df.copy()
+    df = latest_first_order(df)
     for c in df.columns:
         df[c] = clean_str(df[c])
     out = pd.DataFrame({
@@ -190,7 +226,8 @@ def clean_permits(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     # Permisos cancelados nunca generaron intervención física de la vía
     out = out[~out["_status"].fillna("").str.contains("Cancel", case=False)]
     out = out[in_bbox(out["latitude"], out["longitude"])]
-    out = out.sort_values("issue_date").drop_duplicates("permit_number", keep="last").drop(columns="_status")
+    # Orden estable de ingesta (latest_first_order): gana la versión más reciente
+    out = out.drop_duplicates("permit_number", keep="last").drop(columns="_status")
     return out, {"raw": n_raw, "discarded": int(n_raw - len(out)), "clean": int(len(out))}
 
 
@@ -337,9 +374,14 @@ def verify_integrity() -> dict:
         quarantined = cur.fetchone()[0]
         cur.execute(
             "SELECT count(*) FILTER (WHERE weather_condition IS NULL OR lighting_condition IS NULL "
-            "OR posted_speed_limit IS NULL) FROM silver_crashes"
+            "OR posted_speed_limit IS NULL), "
+            # SODA codifica lo desconocido como texto ("UNKNOWN"), no como NULL: se
+            # mide aparte para que el gate no pase en falso con nulos casi inexistentes.
+            "count(*) FILTER (WHERE coalesce(weather_condition, 'UNKNOWN') = 'UNKNOWN' "
+            "OR coalesce(lighting_condition, 'UNKNOWN') = 'UNKNOWN' OR posted_speed_limit IS NULL) "
+            "FROM silver_crashes"
         )
-        null_critical = cur.fetchone()[0]
+        null_critical, unknown_critical = cur.fetchone()
         cur.execute(
             "SELECT column_name FROM information_schema.columns WHERE table_name = 'silver_people' "
             "AND column_name IN ('city','zipcode','hospital','ems_agency','ems_run_no','drivers_license_class')"
@@ -356,11 +398,12 @@ def verify_integrity() -> dict:
         "duplicate_rate": round(dupes / total, 6) if total else 0.0,
         "invalid_or_outside_geom": invalid_geom,
         "null_critical_rate": round(null_critical / total, 4) if total else 0.0,
+        "unknown_critical_rate": round(unknown_critical / total, 4) if total else 0.0,
         "pii_columns_present": pii_cols,
     }
     checks["gate_passed"] = bool(
         total > 0 and checks["duplicate_rate"] < 0.01 and invalid_geom == 0
-        and checks["null_critical_rate"] < 0.05 and not pii_cols
+        and checks["null_critical_rate"] < 0.05 and checks["unknown_critical_rate"] < 0.15 and not pii_cols
     )
     return checks
 

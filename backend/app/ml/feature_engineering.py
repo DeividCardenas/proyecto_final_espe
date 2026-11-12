@@ -91,23 +91,44 @@ WITH base AS (
            bool_or(unit_type = 'PEDESTRIAN') AS has_pedestrian,
            bool_or(unit_type IN ('BICYCLE', 'NON-MOTOR VEHICLE')) AS has_cyclist
     FROM silver_vehicles GROUP BY crash_record_id
-), span AS (
-    SELECT greatest(extract(epoch FROM max(crash_date) - min(crash_date)) / (365.25 * 86400), 1.0) AS years
-    FROM base
 )
-SELECT b.*, u.has_motorcycle, u.has_pedestrian, u.has_cyclist,
-       -- Densidad histórica de siniestros por año en la celda de 500 m
-       (count(*) OVER (PARTITION BY grid_x, grid_y)) / span.years AS grid_density
-FROM base b CROSS JOIN span LEFT JOIN units u USING (crash_record_id)
+-- grid_density NO se calcula aquí: depende de la fecha de corte de cada partición
+-- (ver ``add_grid_density``), para que ninguna fila use siniestros de su futuro.
+SELECT b.*, u.has_motorcycle, u.has_pedestrian, u.has_cyclist
+FROM base b LEFT JOIN units u USING (crash_record_id)
 """
+
+
+def years_span(dates: pd.Series) -> float:
+    """Años cubiertos por las fechas (mínimo 1), igual que ``data_years`` en la API."""
+    d = pd.to_datetime(dates).dropna()
+    if d.empty:
+        return 1.0
+    return max((d.max() - d.min()).total_seconds() / (365.25 * 86400), 1.0)
+
+
+def add_grid_density(df: pd.DataFrame, history: pd.Series | None = None) -> pd.DataFrame:
+    """Densidad histórica (siniestros/año) de la celda de 500 m de cada fila.
+
+    ``history`` es una máscara booleana con las filas que cuentan como historia
+    (p. ej. sólo el periodo de entrenamiento). Las celdas sin historia valen 0.
+    Definición idéntica a la de la API: conteo en la celda / max(años, 1).
+    """
+    hist = df if history is None else df[history]
+    years = years_span(hist["crash_date"])
+    counts = hist.groupby(["grid_x", "grid_y"]).size() / years
+    keys = pd.MultiIndex.from_frame(df[["grid_x", "grid_y"]])
+    out = df.copy()
+    out["grid_density"] = counts.reindex(keys).fillna(0.0).to_numpy()
+    return out
 
 
 def _group(series: pd.Series, mapping: dict, aliases: dict | None = None) -> pd.Series:
     s = series.astype("string").str.upper().str.strip()
-    mapped = s.map(mapping)
+    mapped = s.map(mapping).astype("object")
     if aliases:
-        mapped = mapped.fillna(s.map(aliases))
-    return mapped.fillna("UNKNOWN").astype(str)
+        mapped = mapped.where(mapped.notna(), s.map(aliases).astype("object"))
+    return mapped.where(mapped.notna(), "UNKNOWN").astype(str)
 
 
 def build_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -147,8 +168,6 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     out["aadt_log"] = np.log1p(aadt)
     out["aadt_imputed"] = df.get("aadt_imputed", pd.Series(False, index=df.index)).fillna(True).astype(float)
     out["active_workzone"] = df.get("active_workzone", pd.Series(False, index=df.index)).fillna(False).astype(float)
-    inter = df.get("intersection_related_i", pd.Series(pd.NA, index=df.index))
-    out["intersection_related"] = pd.Series(inter, index=df.index).map({True: 1.0, False: 0.0}).astype(float)
     out["grid_density"] = num("grid_density")
     out["latitude"] = num("latitude")
     out["longitude"] = num("longitude")
@@ -157,6 +176,9 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
         v = df.get(col, pd.Series(pd.NA, index=df.index))
         return pd.Series(v, index=df.index).map({True: 1.0, False: 0.0, 1: 1.0, 0: 0.0}).fillna(0.0).astype(float)
 
+    # En el origen la bandera sólo se llena con "Y" (vacío = no consta): el nulo es
+    # 0, no un valor a imputar con la mediana (que, al ser casi todo "Y", era 1).
+    out["intersection_related"] = flag("intersection_related_i")
     out["num_units"] = num("num_units").clip(upper=6)
     out["hit_and_run"] = flag("hit_and_run_i")
     out["has_motorcycle"] = flag("has_motorcycle")
@@ -179,6 +201,7 @@ def extract(output: str) -> pd.DataFrame:
         cur.execute(EXTRACT_SQL)
         cols = [d.name for d in cur.description]
         raw = pd.DataFrame(cur.fetchall(), columns=cols)
+    raw = add_grid_density(raw)  # sólo informativa; train.py la recalcula por partición
     feats = build_features(raw)
     feats[TARGET] = raw["target"].astype(int)
     feats["crash_record_id"] = raw["crash_record_id"]

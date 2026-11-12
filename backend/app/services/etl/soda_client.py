@@ -7,6 +7,11 @@ Uso:
     python -m app.services.etl.soda_client --dataset crashes --since 2023-01-01
     python -m app.services.etl.soda_client --dataset crashes --incremental
     python -m app.services.etl.soda_client --dataset aadt --all
+
+Ingesta incremental: la marca de agua es el campo de sistema ``:updated_at`` de
+Socrata, no la fecha del siniestro. Así se recuperan los choques reportados tarde
+(``date_police_notified`` días después) y los registros corregidos (p. ej. una
+lesión que pasa a fatal), que con ``crash_date > marca`` se perdían.
 """
 from __future__ import annotations
 
@@ -16,7 +21,7 @@ import logging
 import shutil
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import httpx
@@ -25,6 +30,12 @@ import pandas as pd
 from app.core.config import settings
 
 logger = logging.getLogger("etl.soda")
+
+# Campo de sistema de Socrata con la última modificación de cada registro.
+UPDATED_AT = ":updated_at"
+UPDATED_COL = "_updated_at"  # nombre con el que se guarda en Bronze
+# Ventana de re-descarga cuando una marca de agua antigua no tiene ``:updated_at``
+DEFAULT_LOOKBACK_DAYS = 90
 
 
 @dataclass(frozen=True)
@@ -161,7 +172,7 @@ class SodaClient:
             if page <= 0:
                 break
             params = {
-                "$select": ",".join(spec.columns),
+                "$select": ",".join([*spec.columns, UPDATED_AT]),
                 "$order": spec.order,
                 "$limit": page,
                 "$offset": offset,
@@ -182,35 +193,70 @@ def _watermark_path(dataset_dir: Path) -> Path:
     return dataset_dir / "_watermark.json"
 
 
-def read_watermark(dataset_dir: Path) -> str | None:
+def read_watermark(dataset_dir: Path) -> dict:
+    """Devuelve ``{"max_updated_at": ..., "max_value": ...}`` (vacío si no hay marca)."""
     p = _watermark_path(dataset_dir)
     if p.exists():
-        return json.loads(p.read_text(encoding="utf-8")).get("max_value")
-    return None
+        data = json.loads(p.read_text(encoding="utf-8"))
+        return {k: data.get(k) for k in ("max_updated_at", "max_value") if data.get(k)}
+    return {}
 
 
-def build_where(spec: DatasetSpec, since: str | None, watermark: str | None) -> str | None:
+def _minus_days(iso: str, days: int) -> str:
+    ts = datetime.fromisoformat(iso.replace("Z", ""))
+    return (ts - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def build_where(spec: DatasetSpec, since: str | None, watermark: dict | str | None,
+                lookback_days: int = DEFAULT_LOOKBACK_DAYS) -> str | None:
+    """Construye el ``$where`` SoQL.
+
+    * Sin marca de agua: ``date_field >= since`` (carga completa desde una fecha).
+    * Con ``max_updated_at``: ``:updated_at > marca`` (nuevos y modificados), sin
+      perder el límite inferior ``since`` para no traer histórico antiguo editado.
+    * Marca antigua sin ``max_updated_at``: re-descarga los últimos ``lookback_days``
+      días por fecha del siniestro (cubre reportes tardíos; el upsert deduplica).
+    """
+    if isinstance(watermark, str):  # compatibilidad: marca antigua = fecha máxima
+        watermark = {"max_value": watermark}
+    watermark = watermark or {}
     clauses = []
     if spec.extra_where:
         clauses.append(f"({spec.extra_where})")
-    if spec.date_field:
-        if watermark:
-            clauses.append(f"{spec.date_field} > '{watermark}'")
-        elif since:
-            clauses.append(f"{spec.date_field} >= '{since}T00:00:00'")
+    if spec.date_field and since:
+        clauses.append(f"{spec.date_field} >= '{since}T00:00:00'")
+    if watermark.get("max_updated_at"):
+        clauses.append(f"{UPDATED_AT} > '{watermark['max_updated_at']}'")
+    elif watermark.get("max_value") and spec.date_field:
+        clauses.append(f"{spec.date_field} >= '{_minus_days(watermark['max_value'], lookback_days)}'")
     return " AND ".join(clauses) if clauses else None
 
 
+def _max_str(current: str | None, values: pd.Series) -> str | None:
+    v = values.dropna()
+    if v.empty:
+        return current
+    page_max = str(v.max())
+    return page_max if current is None or page_max > current else current
+
+
 def ingest(dataset: str, since: str | None = None, limit: int | None = None,
-           incremental: bool = False, page_size: int = 50_000, client: SodaClient | None = None) -> dict:
+           incremental: bool = False, page_size: int = 50_000, client: SodaClient | None = None,
+           lookback_days: int = DEFAULT_LOOKBACK_DAYS) -> dict:
     spec = DATASETS[dataset]
-    out_dir = settings.raw_dir / spec.key
-    watermark = read_watermark(out_dir) if incremental else None
-    if not incremental and out_dir.exists():
-        shutil.rmtree(out_dir)  # Carga completa: se reemplaza la Capa Bronze del dataset
+    final_dir = settings.raw_dir / spec.key
+    watermark = read_watermark(final_dir) if incremental else {}
+    if incremental:
+        out_dir = final_dir
+    else:
+        # Carga completa: se descarga a un directorio temporal y sólo al terminar
+        # reemplaza la Capa Bronze (un fallo a mitad no destruye la copia anterior).
+        out_dir = final_dir.with_name(f"{spec.key}.tmp")
+        if out_dir.exists():
+            shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    where = build_where(spec, since, watermark)
+    where = build_where(spec, since, watermark, lookback_days)
     owns_client = client is None
     client = client or SodaClient(page_size=page_size)
     started = time.perf_counter()
@@ -221,24 +267,31 @@ def ingest(dataset: str, since: str | None = None, limit: int | None = None,
 
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
         total = 0
-        max_value = watermark
+        max_value = watermark.get("max_value")
+        max_updated = watermark.get("max_updated_at")
         for i, rows in enumerate(client.iter_pages(spec, where, limit)):
-            df = pd.DataFrame.from_records(rows)
+            df = pd.DataFrame.from_records(rows).rename(columns={UPDATED_AT: UPDATED_COL})
             # Las columnas ausentes en una página (todas nulas) se materializan igual
-            for col in spec.columns:
+            for col in [*spec.columns, UPDATED_COL]:
                 if col not in df.columns:
                     df[col] = None
-            df = df[spec.columns].astype("string")
+            df = df[[*spec.columns, UPDATED_COL]].astype("string")
             df.to_parquet(out_dir / f"part-{stamp}-{i:05d}.parquet", compression="snappy", index=False)
             total += len(df)
+            # vehicles/people filtran por crash_date pero no lo descargan como columna
             if spec.date_field and spec.date_field in df.columns:
-                page_max = df[spec.date_field].dropna().max()
-                if page_max is not pd.NA and page_max is not None and (max_value is None or page_max > max_value):
-                    max_value = str(page_max)
+                max_value = _max_str(max_value, df[spec.date_field])
+            max_updated = _max_str(max_updated, df[UPDATED_COL])
             logger.info("[%s] página %d: %d filas (acumulado %d/%d)", dataset, i, len(df), total, target)
     finally:
         if owns_client:
             client.close()
+
+    # La paginación por offset sobre datos vivos puede saltarse filas si el
+    # dataset cambia durante la descarga: se avisa si faltan más del 0,5 %.
+    if target and total < target * 0.995:
+        logger.warning("[%s] descargadas %d de %d filas esperadas (%.2f%%): conviene repetir la ingesta",
+                       dataset, total, target, 100 * total / target)
 
     elapsed = time.perf_counter() - started
     summary = {
@@ -249,10 +302,15 @@ def ingest(dataset: str, since: str | None = None, limit: int | None = None,
         "downloaded": total,
         "success_rate": round(total / target, 4) if target else 1.0,
         "max_value": max_value,
+        "max_updated_at": max_updated,
         "elapsed_s": round(elapsed, 1),
         "ingested_at": datetime.now(timezone.utc).isoformat(),
     }
     _watermark_path(out_dir).write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    if out_dir != final_dir:
+        if final_dir.exists():
+            shutil.rmtree(final_dir)
+        out_dir.rename(final_dir)
     logger.info("[%s] completado: %s", dataset, summary)
     return summary
 
@@ -263,7 +321,10 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--since", default="2023-01-01", help="Fecha mínima (YYYY-MM-DD) para datasets con fecha")
     parser.add_argument("--limit", type=int, default=None, help="Máximo de registros a descargar")
     parser.add_argument("--all", action="store_true", help="Descargar todo el histórico (ignora --since)")
-    parser.add_argument("--incremental", action="store_true", help="Sólo registros posteriores a la marca de agua")
+    parser.add_argument("--incremental", action="store_true",
+                        help="Sólo registros nuevos o modificados desde la marca de agua (:updated_at)")
+    parser.add_argument("--lookback-days", type=int, default=DEFAULT_LOOKBACK_DAYS,
+                        help="Días a re-descargar si la marca de agua es antigua (sin :updated_at)")
     parser.add_argument("--page-size", type=int, default=50_000)
     args = parser.parse_args(argv)
 
@@ -271,7 +332,8 @@ def main(argv: list[str] | None = None) -> None:
     since = None if args.all else args.since
     keys = list(DATASETS) if args.dataset == "all" else [args.dataset]
     for key in keys:
-        ingest(key, since=since, limit=args.limit, incremental=args.incremental, page_size=args.page_size)
+        ingest(key, since=since, limit=args.limit, incremental=args.incremental, page_size=args.page_size,
+               lookback_days=args.lookback_days)
 
 
 if __name__ == "__main__":

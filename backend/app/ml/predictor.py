@@ -93,7 +93,8 @@ class RiskPredictor:
         else:
             proba, factors = self._heuristic(X.iloc[0])
         cls = int(np.argmax(proba))
-        threshold = float(self.meta.get("critical_threshold_f1", 0.5))
+        # Umbral elegido en validación (recall objetivo); artefactos antiguos sólo traen el de F1
+        threshold = float(self.meta.get("critical_threshold", self.meta.get("critical_threshold_f1", 0.5)))
         return {
             "risk_class": cls,
             "risk_level": SEVERITY_LABELS[cls],
