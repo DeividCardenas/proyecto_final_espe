@@ -27,8 +27,8 @@ El plan de implementación por fases está en [plan_de_implementacion_fases.md](
 
 | Servicio | Contenedor | Puerto | Imagen |
 |---|---|---|---|
-| Base de datos espacial | `chicago_postgis` | 5432 | `postgis/postgis:16-3.4` |
-| API + ML | `chicago_fastapi` | 8000 | `python:3.11-slim-bookworm` (multi-stage) |
+| Base de datos espacial | `chicago_postgis` | 127.0.0.1:5432 | `postgis/postgis:16-3.4` |
+| API + ML | `chicago_fastapi` | 127.0.0.1:8000 | `python:3.11-slim-bookworm` (multi-stage) |
 | Web + proxy | `chicago_frontend` | 80 | `node:20-alpine` → `nginx:1.27-alpine` |
 | Trabajos ETL/ML | `etl` (perfil `jobs`) | — | misma imagen del backend |
 
@@ -39,6 +39,10 @@ Requisitos: Docker Desktop (o Docker Engine con Compose v2) y unos 6 GB de RAM l
 ```bash
 cp .env.example .env
 ```
+
+Abra `.env` y reemplace `CAMBIAR_por_una_clave_larga` (en `POSTGRES_PASSWORD`, `DATABASE_URL` y `SYNC_DATABASE_URL`) por una clave propia. Puede generarla con `python -c "import secrets; print(secrets.token_urlsafe(24))"`. El repositorio no guarda ninguna contraseña y `docker compose` se detiene con un aviso si falta.
+
+PostgreSQL (5432) y la API (8000) sólo se publican en `127.0.0.1`: se usan desde este equipo (DBeaver, Swagger) pero no son accesibles desde la red. La aplicación web se publica en el puerto 80 (`WEB_PORT`).
 
 ```bash
 docker compose up -d db
@@ -88,7 +92,17 @@ docker compose run --rm etl python -m app.services.olap.duckdb_engine --export
 
 Los datasets disponibles para `--dataset` son `crashes`, `vehicles`, `people`, `aadt`, `permits` y `all`. Cada paso deja sus métricas en `data/processed/quality_report.json`.
 
+## Caché de teselas
+
+Nginx guarda las teselas MVT en el volumen `chicago_tiles_cache`, que sobrevive a `docker compose up --build`. Cada tesela vale una hora y, si el backend se reinicia, se sigue sirviendo la última copia buena (cabecera `X-Cache-Status`). Después de volver a cargar datos con el ETL, vacíe la caché para ver los cambios al momento:
+
+```bash
+docker compose exec frontend sh -c "rm -rf /var/cache/nginx/tiles/*"
+```
+
 ## Pruebas
+
+Cada push y cada pull request ejecutan la integración continua de GitHub Actions (`.github/workflows/ci.yml`): lint, tipos, pruebas y build del frontend; pruebas del backend que no necesitan base de datos; validación de `docker-compose.yml` y construcción de las imágenes. Las pruebas de integración necesitan PostGIS con datos cargados y se ejecutan en local:
 
 ```bash
 docker compose run --rm etl pytest -q -p no:cacheprovider tests
@@ -163,6 +177,7 @@ frontend/
   src/components/map/     MapContainer, MapPopup, MapLegend, MapControls, layers/*
   src/components/         layout, analytics, simulator, table
   src/components/tour/    guía de uso con Driver.js: recorrido completo, guía por sección y puntos de ayuda
-  nginx.conf              proxy /api, caché MVT, gzip_static, CSP
+  nginx.conf              proxy /api, caché MVT persistente, gzip_static, CSP
+.github/workflows/ci.yml  integración continua (frontend, backend y Docker)
 data/                     raw (Bronze) · processed (Silver/Gold Parquet, reportes) · duckdb
 ```

@@ -7,8 +7,9 @@ import { fileURLToPath, URL } from "node:url";
 export default defineConfig({
   plugins: [
     react(),
+    // Sólo .gz: nginx:alpine sirve gzip_static pero no trae el módulo brotli,
+    // así que los .br nunca se servían y sólo inflaban la imagen.
     compression({ algorithm: "gzip", ext: ".gz" }),
-    compression({ algorithm: "brotliCompress", ext: ".br" }),
   ],
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   server: {

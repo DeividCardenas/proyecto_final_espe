@@ -19,9 +19,10 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "Chicago Road Safety Risk API"
 
-    # Dual-Engine: asyncpg para la API, psycopg3 para Alembic / ETL
-    DATABASE_URL: str = "postgresql+asyncpg://chicago_admin:chicago_secure_pass_2026@localhost:5432/chicago_safety"
-    SYNC_DATABASE_URL: str = "postgresql+psycopg://chicago_admin:chicago_secure_pass_2026@localhost:5432/chicago_safety"
+    # Dual-Engine: asyncpg para la API, psycopg3 para Alembic / ETL.
+    # Sin contraseña en el código: se define en .env (ver .env.example) o en el entorno.
+    DATABASE_URL: str = "postgresql+asyncpg://chicago_admin@localhost:5432/chicago_safety"
+    SYNC_DATABASE_URL: str = "postgresql+psycopg://chicago_admin@localhost:5432/chicago_safety"
 
     SOCRATA_DOMAIN: str = "data.cityofchicago.org"
     SOCRATA_APP_TOKEN: str = ""
