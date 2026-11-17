@@ -54,7 +54,7 @@ export function SegmentPriorityPanel() {
                 </span>
               </div>
               <p className="mt-2 text-[15px] font-medium leading-snug text-slate-100">
-                de los siniestros graves {year ? `de ${year}` : "del año evaluado"} ocurrió en el <b>10 % de las cuadras</b> que señaló el modelo.
+                de los siniestros graves {year ? `de ${year}` : "del año evaluado"} ocurrió en el <b>10{"\u00a0"}% de las cuadras</b> que señaló el modelo.
               </p>
             </div>
           ) : (
