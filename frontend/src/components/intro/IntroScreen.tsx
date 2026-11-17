@@ -183,9 +183,14 @@ function CityCanvas({ points, theme, top1, label }: { points: { lon: number; lat
           ctx.stroke();
           ctx.textAlign = right ? "left" : "right";
           const tx = lx + dir * 18;
+          ctx.font = `700 11px ${font}, Inter, sans-serif`;
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = "rgba(2,6,23,0.9)";
+          ctx.strokeText("CUADRA N.º 1 DEL MODELO", tx, ly - 6);
           ctx.fillStyle = critical;
-          ctx.font = `600 11px ${font}, Inter, sans-serif`;
           ctx.fillText("CUADRA N.º 1 DEL MODELO", tx, ly - 6);
+          ctx.font = `600 15px ${font}, Inter, sans-serif`;
+          ctx.strokeText(label, tx, ly + 12);
           ctx.fillStyle = "#ffffff";
           ctx.font = `600 15px ${font}, Inter, sans-serif`;
           ctx.fillText(label, tx, ly + 12);

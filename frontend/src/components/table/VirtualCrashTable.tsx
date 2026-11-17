@@ -1,4 +1,5 @@
 import { useRef, useState, type KeyboardEvent } from "react";
+import { causeEs, crashTypeEs, weatherEs } from "@/lib/crashLabels";
 import {
   flexRender, getCoreRowModel, getSortedRowModel, useReactTable, type ColumnDef, type SortingState,
 } from "@tanstack/react-table";
@@ -22,11 +23,12 @@ const columns: ColumnDef<CrashFeature>[] = [
     },
   },
   { id: "street", header: "Ubicación", accessorFn: (r) => r.properties.street, size: 220 },
-  { id: "crash_type", header: "Tipo", accessorFn: (r) => r.properties.crash_type ?? "", size: 170 },
-  { id: "cause", header: "Causa", accessorFn: (r) => r.properties.cause ?? "", size: 230 },
+  // El valor original se conserva para ordenar y exportar; en pantalla se muestra en español
+  { id: "crash_type", header: "Tipo", accessorFn: (r) => r.properties.crash_type ?? "", size: 170, cell: (c) => crashTypeEs(String(c.getValue())) },
+  { id: "cause", header: "Causa", accessorFn: (r) => r.properties.cause ?? "", size: 230, cell: (c) => causeEs(String(c.getValue())) },
   { id: "injuries", header: "Lesion.", accessorFn: (r) => r.properties.injuries, size: 60 },
   { id: "fatal", header: "Fatal", accessorFn: (r) => r.properties.fatal, size: 50 },
-  { id: "weather", header: "Clima", accessorFn: (r) => r.properties.weather ?? "", size: 110 },
+  { id: "weather", header: "Clima", accessorFn: (r) => r.properties.weather ?? "", size: 110, cell: (c) => weatherEs(String(c.getValue())) },
   { id: "workzone", header: "Obra", accessorFn: (r) => (r.properties.workzone ? "Sí" : "No"), size: 50 },
 ];
 

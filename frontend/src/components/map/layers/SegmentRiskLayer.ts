@@ -34,6 +34,9 @@ const colorExpr = ([top1, top3, top10]: [string, string, string]): ExpressionSpe
 const tier = (a: number, b: number, c: number): ExpressionSpecification =>
   ["case", ["<=", ["get", "priority_pct"], PRIORITY_BREAKS[0]], a, ["<=", ["get", "priority_pct"], PRIORITY_BREAKS[1]], b, c];
 
+const ringExpr = (bg: string): ExpressionSpecification =>
+  ["case", ["<=", ["get", "priority_pct"], PRIORITY_BREAKS[1]], "#f8fafc", bg];
+
 export function addSegmentLayer(map: MLMap) {
   if (map.getSource(SEGMENT_SOURCE)) return;
   const colors: [string, string, string] = ["#ef4444", "#f59e0b", "#22d3ee"];
@@ -73,8 +76,9 @@ export function addSegmentLayer(map: MLMap) {
     paint: {
       "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, tier(4.2, 3, 2.1), 15, tier(11, 8, 6)],
       "circle-color": colorExpr(colors),
-      "circle-stroke-color": "#020617",
-      "circle-stroke-width": tier(1.2, 1, 0.6),
+      // Aro claro en el top 3 %: distingue las cuadras de los puntos de siniestros (que también usan rojo y ámbar)
+      "circle-stroke-color": ringExpr("#020617"),
+      "circle-stroke-width": tier(1.8, 1.4, 0.6),
       "circle-opacity": tier(1, 0.95, 0.8),
     },
   });
@@ -85,7 +89,7 @@ export function applySegmentTheme(map: MLMap, theme: ThemeDef) {
   if (!map.getLayer(SEGMENT_LAYER)) return;
   const colors = segmentColors(theme);
   map.setPaintProperty(SEGMENT_LAYER, "circle-color", colorExpr(colors));
-  map.setPaintProperty(SEGMENT_LAYER, "circle-stroke-color", theme.map.background || "#020617");
+  map.setPaintProperty(SEGMENT_LAYER, "circle-stroke-color", ringExpr(theme.map.background || "#020617"));
   map.setPaintProperty(SEGMENT_GLOW_LAYER, "circle-color", colorExpr(colors));
   map.setPaintProperty(SEGMENT_PULSE_LAYER, "circle-stroke-color", colors[0]);
 }

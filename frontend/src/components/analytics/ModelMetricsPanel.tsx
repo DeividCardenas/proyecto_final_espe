@@ -2,12 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { crashService } from "@/services/crashService";
 import { Card, cn, fmtNumber, fmtPct } from "@/components/ui";
 import { RankChart } from "@/components/charts/d3";
-import { modelLabel, targetYear } from "@/lib/modelLabels";
+import { BASELINE_LABELS, modelLabel, targetYear } from "@/lib/modelLabels";
 
 const GATE_LABELS: Record<string, string> = {
-  auc_roc: "AUC-ROC multiclase ≥ 0.70",
-  recall_critical: "Recall clase crítica ≥ 0.60",
-  precision_critical: "Precisión clase crítica ≥ 0.65",
+  auc_roc: "AUC-ROC multiclase ≥ 0,70",
+  recall_critical: "Recall clase crítica ≥ 0,60",
+  precision_critical: "Precisión clase crítica ≥ 0,65",
   cv_variance: "Variación CV espacial < 5%",
   lift_critical: "Lift clase crítica ≥ 3×",
 };
@@ -29,6 +29,8 @@ function SegmentModelSection() {
   const win = m.comparison?.[m.winner];
   if (!win) return <p className="col-span-2 text-xs text-slate-400">El reporte del modelo por tramo está incompleto.</p>;
   const rows = Object.entries(m.comparison);
+  const baselines = Object.entries(m.baselines ?? {}).sort((a, b) => b[1].top10_capture_severe - a[1].top10_capture_severe);
+  const best = baselines[0];
   // El año evaluado sale del reporte: si se reentrena con otra ventana, el texto se actualiza solo
   const year = targetYear(m.windows?.test);
   return (
@@ -38,19 +40,33 @@ function SegmentModelSection() {
         title="Modelo principal · riesgo por cuadra"
         className="col-span-2"
         takeaway={<>{modelLabel(m.winner)}: interviniendo el 10% de cuadras priorizadas se cubre el{" "}
-          <b>{fmtPct(win.top10_capture_severe, 0)}</b> de los siniestros graves del año siguiente.</>}
-        context={`Test fuera de tiempo (${m.windows?.test ?? "—"}) con ${fmtNumber(m.n_test)} cuadras. La línea discontinua es lo que captaría elegir el 10% al azar.`}
+          <b>{fmtPct(win.top10_capture_severe, 0)}</b> de los siniestros graves del año siguiente, {fmtNumber(win.top10_lift, 1)} veces el azar.</>}
+        context={<>Prueba con el año siguiente al entrenamiento ({m.windows?.test?.replace("->", "→") ?? "—"}), {fmtNumber(m.n_test)} cuadras. Barras huecas: reglas
+          sin modelo. La línea punteada es el 10% que captaría elegir al azar.</>}
       >
         <RankChart
-          ariaLabel="Captura de siniestros graves en el top 10% por algoritmo"
-          data={rows.map(([k, v]) => ({ label: modelLabel(k), value: v.top10_capture_severe, highlight: k === m.winner,
-            note: k === m.winner ? "elegido" : undefined }))}
+          ariaLabel="Captura de siniestros graves en el top 10% por algoritmo y por regla de historial"
+          data={[
+            ...rows.map(([k, v]) => ({ label: modelLabel(k), value: v.top10_capture_severe, highlight: k === m.winner,
+              note: k === m.winner ? "elegido" : undefined })),
+            ...baselines.map(([k, v]) => ({ label: BASELINE_LABELS[k] ?? k, value: v.top10_capture_severe, muted: true })),
+          ]}
           format={(v) => fmtPct(v, 0)}
           reference={{ value: 0.1, label: "azar 10%" }}
         />
+        <div className="mt-2 space-y-1.5 rounded-lg border border-slate-800 bg-slate-950/50 p-2 text-[11px] leading-snug text-slate-300">
+          <p><b className="text-slate-100">¿Por qué {modelLabel(m.winner).toLowerCase()} si otro marca más?</b> En la validación cruzada espacial
+            (con datos de entrenamiento) quedó a menos de un error estándar del mejor: ante un empate se elige el más simple,
+            con probabilidades calibradas y un «por qué» que se explica variable por variable.</p>
+          {best && (
+            <p><b className="text-slate-100">Lectura honesta:</b> la {BASELINE_LABELS[best[0]]?.replace("Regla: ", "regla «") ?? best[0]}{BASELINE_LABELS[best[0]] ? "»" : ""}{" "}
+              capta un {fmtPct(best[1].top10_capture_severe, 0)}, a la par o algo más que el modelo. El aporte del modelo no es ordenar mejor,
+              sino dar a cada cuadra una probabilidad y sus razones (velocidad, tráfico, obras, peatones…).</p>
+          )}
+        </div>
       </Card>
       <Card title="Comparativa completa" className="col-span-2"
-        context="AUC: 0,5 = azar, 1 = perfecto. CV espacial con bloques de ~2 km (cuadras vecinas nunca en train y validación a la vez).">
+        context="AUC: 0,5 = azar, 1 = perfecto. CV esp.: validación cruzada espacial con bloques de ~2 km (cuadras vecinas nunca en entrenamiento y validación a la vez).">
         <table className="w-full text-[11px] tabular-nums">
           <thead>
             <tr className="text-slate-400">
@@ -95,7 +111,7 @@ function CrashModelSection() {
           takeaway={<>AUC macro {fmtNumber(data.test.auc_roc_ovr_macro, 2)}; detecta el {fmtPct(decision?.recall_critical ?? data.test.recall_critical, 0)} de los siniestros
             críticos{critShare !== null && <>, que son sólo el {fmtPct(critShare, 1)} del total</>}
             {decision?.threshold !== undefined && <> (umbral {fmtNumber(decision.threshold, 2)}{decision.lift !== undefined && <>, lift {fmtNumber(decision.lift, 1)}×</>})</>}.</>}
-          context={`Entrenado con ${fmtNumber(data.n_rows)} siniestros · inferencia ${data.artifact?.single_inference_ms ?? "—"} ms`}>
+          context={`Entrenado con ${fmtNumber(data.n_rows)} siniestros · inferencia ${fmtNumber(data.artifact?.single_inference_ms ?? null, 1)} ms`}>
           <ul className="space-y-1 text-[11px]">
             {Object.entries(data.gates ?? {}).map(([k, ok]) => (
               <li key={k} className="flex items-center justify-between">

@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { causeEs, crashTypeEs, lightingEs, weatherEs } from "@/lib/crashLabels";
 import { createPortal } from "react-dom";
 import { Popup } from "maplibre-gl";
 import { useQuery } from "@tanstack/react-query";
@@ -50,10 +51,10 @@ export function MapPopup({ crashId, coordinates, onClose }: Props) {
           </div>
           <p className="font-semibold text-sm leading-tight">{data.street || "Ubicación sin dirección"}</p>
           <dl className="grid grid-cols-[92px_1fr] gap-x-3 gap-y-1 [&_dd]:break-words [&_dd]:leading-snug">
-            <dt className="text-slate-400">Tipo</dt><dd>{data.crash_type ?? "—"}</dd>
-            <dt className="text-slate-400">Causa</dt><dd>{data.cause ?? "—"}</dd>
+            <dt className="text-slate-400">Tipo</dt><dd>{crashTypeEs(data.crash_type) || "—"}</dd>
+            <dt className="text-slate-400">Causa</dt><dd>{causeEs(data.cause) || "—"}</dd>
             <dt className="text-slate-400">Lesionados</dt><dd>{data.injuries} {data.fatal > 0 && <b className="text-red-400">({data.fatal} fatal)</b>}</dd>
-            <dt className="text-slate-400">Clima / luz</dt><dd>{data.weather ?? "—"} / {data.lighting ?? "—"}</dd>
+            <dt className="text-slate-400">Clima / luz</dt><dd>{weatherEs(data.weather) || "—"} / {lightingEs(data.lighting) || "—"}</dd>
             <dt className="text-slate-400">Velocidad</dt><dd>{data.speed != null ? `${data.speed} mph` : "—"}</dd>
             <dt className="text-slate-400">AADT</dt><dd>{data.aadt?.toLocaleString("es") ?? "—"}</dd>
             <dt className="text-slate-400">Obra CDOT</dt><dd>{data.workzone ? `Sí (${data.permit})` : "No"}</dd>

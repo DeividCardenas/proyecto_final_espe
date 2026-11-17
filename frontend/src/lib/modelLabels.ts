@@ -13,3 +13,10 @@ export function targetYear(window: string | null | undefined): string | null {
   const years = window?.match(/\d{4}/g);
   return years?.length ? years[years.length - 1] : null;
 }
+
+/** Reglas sin modelo con las que se compara el modelo por cuadra. */
+export const BASELINE_LABELS: Record<string, string> = {
+  historial_siniestros: "Regla: más siniestros el año previo",
+  historial_graves: "Regla: más graves el año previo",
+  historial_lesionados: "Regla: más lesionados el año previo",
+};

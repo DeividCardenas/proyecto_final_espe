@@ -42,12 +42,13 @@ export function MapLegend() {
               <i className="inline-block rounded-full" style={{
                 background: segmentColors(theme)[i],
                 width: [12, 10, 8][i], height: [12, 10, 8][i],
+                border: i < 2 ? "1.5px solid #f8fafc" : undefined,
                 boxShadow: i === 0 ? `0 0 10px ${segmentColors(theme)[0]}` : undefined,
               }} />
               <span className={i === 0 ? "font-semibold text-slate-100" : undefined}>{l}</span>
             </p>
           ))}
-          <p className="mt-1 text-slate-400">El anillo que late marca las 10 primeras. Clic en una cuadra para ver por qué.</p>
+          <p className="mt-1 text-slate-400">Aro blanco = cuadra (no siniestro). El anillo que late marca las 10 primeras. Clic en una para ver por qué.</p>
         </div>
       )}
       {layers.permits && <p><span className="mr-1 inline-block h-2.5 w-4 border border-dashed border-orange-400 bg-orange-500/30 align-middle" />Obra CDOT con cierre + buffer 250 m</p>}
