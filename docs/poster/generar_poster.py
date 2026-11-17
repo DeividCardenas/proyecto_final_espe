@@ -271,7 +271,7 @@ def build(datos: Path) -> None:
             "¿Cómo usar un modelo predictivo para priorizar intervenciones preventivas en los tramos de mayor riesgo?"],
            size=24, color=WHITE, after=4)
 
-    y1 = y0 + 15.1
+    y1 = y0 + 14.8
     P.section(M, y1, lw, 2, "Datos abiertos integrados")
     tiles = [(thousands(c["silver_counts"]["silver_crashes"]), "siniestros"),
              (thousands(c["silver_counts"]["silver_people"]), "personas (anonimizadas)"),
@@ -279,14 +279,14 @@ def build(datos: Path) -> None:
              (thousands(c["silver_counts"]["silver_road_permits"]), "permisos de obra")]
     tw = (lw - 1.0) / 2
     for i, (v, l) in enumerate(tiles):
-        tx_, ty = M + (i % 2) * (tw + 1.0), y1 + 3.0 + (i // 2) * 4.1
-        P.rect(tx_, ty, tw, 3.7, PANEL, radius=0.08)
+        tx_, ty = M + (i % 2) * (tw + 1.0), y1 + 3.0 + (i // 2) * 3.7
+        P.rect(tx_, ty, tw, 3.4, PANEL, radius=0.08)
         P.text(tx_ + 0.8, ty + 0.25, tw - 1.6, 1.9, v, size=42, bold=True, color=TEAL)
-        P.text(tx_ + 0.8, ty + 2.15, tw - 1.6, 1.4, l, size=21, color=MUTED)
-    P.text(M, y1 + 11.4, lw, 1.3, "Chicago Data Portal (API SODA) · enero 2023 – noviembre 2026", size=20,
+        P.text(tx_ + 0.8, ty + 2.0, tw - 1.6, 1.4, l, size=21, color=MUTED)
+    P.text(M, y1 + 10.6, lw, 1.3, "Chicago Data Portal (API SODA) · enero 2023 – noviembre 2026", size=20,
            color=MUTED)
 
-    y2 = y1 + 13.2
+    y2 = y1 + 12.4
     P.section(M, y2, lw, 3, "Cómo se hizo")
     steps = [("Bronze", "descarga incremental de 5 fuentes"),
              ("Silver", "PostGIS: depuración, cuarentena y anonimización"),
@@ -295,10 +295,10 @@ def build(datos: Path) -> None:
              ("Modelos", "logística, RF y XGBoost; validación temporal y espacial"),
              ("Aplicación", "FastAPI + React + MapLibre GL JS")]
     for i, (a, b) in enumerate(steps):
-        sy = y2 + 3.0 + i * 1.95
-        P.rect(M, sy + 0.1, 0.45, 1.8, ORANGE if a == "Modelos" else TEAL)
+        sy = y2 + 3.0 + i * 1.72
+        P.rect(M, sy + 0.1, 0.45, 1.55, ORANGE if a == "Modelos" else TEAL)
         P.text(M + 1.1, sy, lw - 1.1, 2.2, [[(a + "  ", {"bold": True}), (b, {"color": MUTED})]], size=23)
-    body_end = y2 + 3.0 + 6 * 1.95
+    body_end = y2 + 3.0 + 6 * 1.72
 
     # ---- Columna derecha: mapa
     mx = M + lw + 2.0
@@ -337,38 +337,58 @@ def build(datos: Path) -> None:
            size=21, color=LIGHT, after=5)
 
     # ---- Resultados
-    y3 = body_end + 1.3
-    P.section(M, y3, cw, 5, "Resultados: el riesgo de una cuadra persiste año a año")
-    fig_w = 38.0
-    pic = P.image(FIGDIR / "01_captura_top10_cuadras.png", M, y3 + 3.0, w=fig_w)
-    res_end = y3 + 3.0 + pic.height / 360000
+    y3 = body_end + 1.0
+    P.section(M, y3, cw, 5, "Resultados: dos modelos, dos preguntas")
+    fig_w = 36.0
+    hist = boot["historial_siniestros"]["capture"]
+    # Modelo principal (por cuadra)
+    P.text(M, y3 + 3.0, fig_w, 1.4, [[("MODELO PRINCIPAL · POR CUADRA   ", {"bold": True, "color": TEAL, "size": 21}),
+                                      ("¿dónde intervenir primero?", {"color": MUTED, "size": 21})]])
+    pic = P.image(FIGDIR / "01_captura_top10_cuadras.png", M, y3 + 4.7, w=fig_w)
+    hy = y3 + 4.7 + pic.height / 360000 + 0.5
+    P.rect(M, hy, fig_w, 4.6, ORANGE_SOFT, radius=0.06)
+    P.text(M + 0.9, hy + 0.45, fig_w - 1.8, 3.9,
+           [[("Con honestidad: ", {"bold": True, "color": ORANGE}),
+             (f"la regla «más siniestros el año anterior» capta {fmt(hist * 100)} %, un poco más que el modelo "
+              f"({fmt(cap * 100)} %). El modelo aporta la probabilidad calibrada de cada cuadra y por qué es riesgosa.", {})]],
+           size=21)
+    res_end = hy + 4.6
     rx = M + fig_w + 2.0
     rw = W - M - rx
-    P.rect(rx, y3 + 3.0, rw, 6.0, ORANGE_SOFT, radius=0.05)
-    hist = boot["historial_siniestros"]["capture"]
-    P.text(rx + 1.0, y3 + 3.5, rw - 2.0, 5.2,
-           [[("Con honestidad", {"bold": True, "color": ORANGE, "size": 26})],
-            f"La regla «más siniestros el año anterior» capta {fmt(hist * 100)} %, un poco más que el modelo "
-            f"({fmt(cap * 100)} %). El modelo aporta la probabilidad calibrada de cada cuadra y por qué es riesgosa."],
-           size=23, after=4)
+    # Modelo complementario (por siniestro)
+    P.rect(rx, y3 + 3.0, rw, 9.4, PANEL, radius=0.05)
+    P.text(rx + 1.0, y3 + 3.5, rw - 2.0, 2.6,
+           [[("MODELO COMPLEMENTARIO · POR SINIESTRO", {"bold": True, "color": TEAL, "size": 21})],
+            [("¿qué tan grave sería un choque aquí, ahora?", {"color": MUTED, "size": 21})]])
+    kp = [(fmt(td["auc_roc_ovr_macro"], 2), "AUC (XGBoost)"), (f"{fmt(td['lift'], 1)}×", "lift en casos graves"),
+          (fmt(rep["models"][rep["winner"]]["calibration_critical"]["ece"], 3), "error de calibración")]
+    kw = (rw - 2.0) / 3
+    for i, (v, l) in enumerate(kp):
+        P.text(rx + 1.0 + i * kw, y3 + 6.4, kw, 2.0, v, size=40, bold=True, color=NAVY)
+        P.text(rx + 1.0 + i * kw, y3 + 8.4, kw - 0.4, 1.3, l, size=19, color=MUTED)
+    abl = rep["ablation_pre_crash_only"]["auc_roc_ovr_macro"]
+    P.text(rx + 1.0, y3 + 10.1, rw - 2.0, 2.9,
+           f"Alimenta el Simulador de la aplicación. Lo que más pesa es el tipo de choque: solo con hora, clima, luz "
+           f"y vía el AUC baja a {fmt(abl, 2)}.", size=20)
+    oy = y3 + 13.6
     rows = [("OE1", "Base geoespacial integrada", "0 geometrías inválidas", True),
             ("OE2", "Depuración > 95 %", "98,9 %", True),
             ("OE3", "AUC ≥ 0,70", f"{fmt(lr['auc_roc_ovr_macro'], 2)} cuadra · {fmt(td['auc_roc_ovr_macro'], 2)} siniestro", True),
             ("OE3", "Recall grave ≥ 0,60", f"{fmt(td['recall_critical'], 2)} siniestro · {fmt(lr['recall_high'], 2)} cuadra", False),
             ("OE4", "Despliegue < 2 min · < 2 s", "19 s · 0,76 s", True)]
-    P.text(rx, y3 + 10.0, rw, 1.5, "Cumplimiento de objetivos", size=24, bold=True)
+    P.text(rx, oy, rw, 1.5, "Cumplimiento de objetivos", size=24, bold=True)
     for i, (oe, ind, res, ok) in enumerate(rows):
-        ry = y3 + 11.7 + i * 2.1
-        P.rect(rx, ry, rw, 1.95, PANEL if i % 2 == 0 else WHITE)
+        ry = oy + 1.7 + i * 2.0
+        P.rect(rx, ry, rw, 1.85, PANEL if i % 2 == 0 else WHITE)
         P.text(rx + 0.5, ry + 0.25, 2.8, 1.3, oe, size=20, bold=True, color=TEAL)
-        P.text(rx + 3.2, ry + 0.25, 13.0, 1.3, ind, size=20)
-        P.text(rx + 16.0, ry + 0.25, rw - 18.4, 1.3, res, size=20, color=MUTED)
+        P.text(rx + 3.2, ry + 0.25, 15.0, 1.3, ind, size=20)
+        P.text(rx + 18.0, ry + 0.25, rw - 20.4, 1.3, res, size=20, color=MUTED)
         P.text(rx + rw - 2.0, ry + 0.05, 1.6, 1.6, "✓" if ok else "✗", size=26, bold=True,
                color=OK if ok else BAD, align=PP_ALIGN.CENTER)
-    res_end = max(res_end, y3 + 11.7 + 5 * 2.1)
+    res_end = max(res_end, oy + 1.7 + 5 * 2.0)
 
     # ---- Hallazgos para la ciudad
-    y4 = res_end + 1.0
+    y4 = res_end + 0.9
     P.section(M, y4, cw, 6, "Hallazgos para la ciudad")
     vul = c["vulnerable"]["PEDESTRIAN"]["critical_rate"] / c["crashes"]["critical_rate"]
     sp = {s["mph"]: s["critical_rate"] for s in c["speed"]}
@@ -381,13 +401,13 @@ def build(datos: Path) -> None:
     cw4 = (cw - 3 * 1.2) / 4
     for i, (t, v, d, bg, fg) in enumerate(cards):
         cx = M + i * (cw4 + 1.2)
-        P.rect(cx, y4 + 3.0, cw4, 6.8, bg, radius=0.06)
+        P.rect(cx, y4 + 3.0, cw4, 6.3, bg, radius=0.06)
         P.text(cx + 0.9, y4 + 3.5, cw4 - 1.8, 1.4, t, size=24, bold=True)
         P.text(cx + 0.9, y4 + 4.9, cw4 - 1.8, 2.3, v, size=44, bold=True, color=fg)
-        P.text(cx + 0.9, y4 + 7.1, cw4 - 1.8, 2.6, d, size=20, color=MUTED)
+        P.text(cx + 0.9, y4 + 6.9, cw4 - 1.8, 2.3, d, size=20, color=MUTED)
 
     # ---- Conclusiones
-    y5 = y4 + 10.9
+    y5 = y4 + 10.2
     P.section(M, y5, cw, 7, "Conclusiones")
     concl = ["Intervenir el 10 % de cuadras priorizadas cubre cerca del 42 % de los siniestros graves del año siguiente.",
              "El historial reciente ya prioriza bien; el modelo suma la probabilidad calibrada y el porqué de cada cuadra.",
@@ -399,14 +419,14 @@ def build(datos: Path) -> None:
                [[("•  ", {"color": ORANGE, "bold": True}), (x, {})]], size=24)
 
     # ---- Referencias
-    P.rect(0, H - 4.0, W, 4.0, PANEL)
-    P.text(M, H - 3.5, cw, 3.0,
+    P.rect(0, H - 3.4, W, 3.4, PANEL)
+    P.text(M, H - 3.0, cw, 2.7,
            "City of Chicago (2026). Traffic Crashes: Crashes, Vehicles y People; CDOT Permits [Datos]. Chicago Data Portal. · "
            "Chen, T. y Guestrin, C. (2016). XGBoost. Proc. KDD '16, 785–794. · Breiman, L. (2001). Random forests. "
            "Machine Learning, 45(1), 5–32. · Pedregosa, F. et al. (2011). Scikit-learn. JMLR, 12, 2825–2830. · "
            "Código: github.com/DeividCardenas/proyecto_final_espe",
            size=20, color=MUTED, spacing=1.1)
-    print(f"  fin del contenido: {y5 + 3.0 + 2 * 3.0:.1f} cm (referencias desde {H - 4.0:.1f} cm)")
+    print(f"  fin del contenido: {y5 + 3.0 + 2 * 3.0:.1f} cm (referencias desde {H - 3.4:.1f} cm)")
 
     pptx_path = HERE / f"{NAME}.pptx"
     P.prs.save(pptx_path)
