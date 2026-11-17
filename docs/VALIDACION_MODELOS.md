@@ -1,6 +1,6 @@
 # Validación de los modelos y cómo reentrenar
 
-Este documento describe el diseño de validación vigente de los dos modelos y qué cambia respecto al entrenamiento del 24 de octubre de 2026, cuyas cifras están en `INFORME_RESULTADOS.md`. Esas cifras se deben actualizar después de reentrenar.
+Este documento describe el diseño de validación vigente de los dos modelos y qué cambia respecto al entrenamiento del 24 de octubre de 2026. Las cifras del reentrenamiento del 12 de noviembre de 2026 están en `INFORME_RESULTADOS.md`.
 
 ## Cómo reentrenar (en el PC con Docker)
 
