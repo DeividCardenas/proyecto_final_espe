@@ -26,6 +26,7 @@ from matplotlib import font_manager  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = Path(__file__).resolve().parent / "figuras"
+DPI = 200  # el póster usa 400 para imprimir a 90 × 120 cm
 MODELS = ROOT / "backend" / "app" / "ml" / "models"
 _LIVE = ROOT / "data" / "processed" / "cifras_informe.json"
 CIFRAS = Path(sys.argv[1]) if len(sys.argv) > 1 else (_LIVE if _LIVE.exists() else Path(__file__).resolve().parent / "cifras_informe.json")
@@ -70,7 +71,7 @@ def save(fig, name: str) -> None:
         fig.subplots_adjust(left=left, top=1 - 0.95 / h)
         fig.text(0.01, 1 - 0.12 / h, title, color=INK, fontsize=13.5, fontweight="semibold", va="top", ha="left")
         fig.text(0.01, 1 - 0.46 / h, sub, color=MUTED, fontsize=10, va="top", ha="left")
-    fig.savefig(OUT / f"{name}.png", dpi=200, facecolor="white")
+    fig.savefig(OUT / f"{name}.png", dpi=DPI, facecolor="white")
     fig.savefig(OUT / f"{name}.svg", facecolor="white")
     plt.close(fig)
     print("  ", name)
