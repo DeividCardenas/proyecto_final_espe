@@ -64,7 +64,8 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
     // Densidad: tonos apagados para lo común y cálidos/saturados sólo donde se concentra
     heatmap: ["#334155", "#64748b", "#b45309", "#f59e0b", "#fde68a"],
     chart: { primary: "#0ea5e9", critical: "#dc2626", series: ["#38bdf8", "#818cf8", "#a78bfa", "#f472b6", "#fb923c", "#facc15", "#4ade80", "#94a3b8"], grid: "#1e293b", axis: "#64748b", tooltipBg: "#0f172a", tooltipBorder: "#334155" },
-    map: { background: "", water: "", land: "", building: "", roadMajor: "", roadMinor: "", roadOpacity: 1, label: "", labelHalo: "", boundary: "" },
+    // Azul noche profundo (como la portada): las cuadras de color resaltan sobre un fondo sobrio
+    map: { background: "#050b18", water: "#02050d", land: "#081125", building: "#0c1830", roadMajor: "#2a4466", roadMinor: "#16263f", roadOpacity: 0.9, label: "#7c8ba3", labelHalo: "#050b18", boundary: "#334155" },
     cluster: ["#0ea5e9", "#8b5cf6", "#ec4899", "#f97316"],
   },
 

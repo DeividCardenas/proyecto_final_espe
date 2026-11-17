@@ -2,6 +2,7 @@ import type { Map as MLMap } from "maplibre-gl";
 import type { ThemeDef } from "./themes";
 import { HEATMAP_LAYER, POINTS_LAYER } from "@/components/map/layers/CrashHeatmapLayer";
 import { CLUSTER_LAYER } from "@/components/map/layers/CrashClusterLayer";
+import { applySegmentTheme } from "@/components/map/layers/SegmentRiskLayer";
 
 type PaintProp =
   | "background-color" | "fill-color" | "fill-opacity" | "line-color" | "line-opacity" | "text-color" | "text-halo-color";
@@ -36,7 +37,7 @@ export function applyMapTheme(map: MLMap, theme: ThemeDef) {
   const style = map.getStyle();
   if (!style?.layers) return;
 
-  if (theme.id === "classic") {
+  if (!theme.map.background) {
     restore(map);
   } else {
     const m = theme.map;
@@ -67,6 +68,7 @@ export function applyMapTheme(map: MLMap, theme: ThemeDef) {
   }
 
   // Capas de datos del proyecto
+  applySegmentTheme(map, theme);
   const [s0, s1, s2] = theme.severity;
   if (map.getLayer(POINTS_LAYER)) {
     map.setPaintProperty(POINTS_LAYER, "circle-color", ["match", ["get", "severity"], 2, s2, 1, s1, s0]);

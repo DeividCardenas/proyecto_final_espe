@@ -21,7 +21,7 @@ import { addRoadClosureLayers, PERMIT_FILL_LAYER, PERMIT_LINE_LAYER, setPermitDa
 import {
   AADT_LAYER, addTrafficLayers, HOTSPOT_LAYER, setAadtData, setHotspotData,
 } from "./layers/TrafficAADTLayer";
-import { addSegmentLayer, SEGMENT_LAYER, setSegmentData } from "./layers/SegmentRiskLayer";
+import { addSegmentLayer, SEGMENT_LAYER, SEGMENT_LAYERS, setSegmentData, startSegmentPulse } from "./layers/SegmentRiskLayer";
 import { MapPopup } from "./MapPopup";
 import { useTheme } from "@/stores/useThemeStore";
 import { applyMapTheme } from "@/theme/mapTheme";
@@ -32,7 +32,7 @@ const LAYER_GROUPS: Record<LayerId, string[]> = {
   points: [POINTS_LAYER],
   clusters: [CLUSTER_LAYER, CLUSTER_COUNT_LAYER],
   risk: [RISK_LAYER, RISK_OUTLINE_LAYER],
-  segments: [SEGMENT_LAYER],
+  segments: SEGMENT_LAYERS,
   permits: [PERMIT_FILL_LAYER, PERMIT_LINE_LAYER],
   hotspots: [HOTSPOT_LAYER],
   aadt: [AADT_LAYER],
@@ -109,6 +109,11 @@ export function MapContainer({ children }: { children?: ReactNode }) {
   useEffect(() => {
     if (map && loaded) applyMapTheme(map, theme);
   }, [map, loaded, theme]);
+
+  // Pulso sobre las 10 cuadras prioritarias (sólo se dibuja con la capa visible)
+  useEffect(() => {
+    if (map && loaded) return startSegmentPulse(map);
+  }, [map, loaded]);
 
   // --- Fechas y «sólo zona de obra»: filtro en servidor sobre las teselas MVT ---
   useEffect(() => {
