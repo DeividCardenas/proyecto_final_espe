@@ -231,11 +231,10 @@ def build(datos: Path) -> None:
     P.text(M, 11.75, 21, 1.2, "Sustentación final · noviembre 2026", size=22, color=RGBColor(0xC9, 0xD6, 0xE0),
            align=PP_ALIGN.CENTER)
     tx = M + 21 + 3.0
-    P.text(tx, 1.4, W - tx - M, 4.6, "Chicago Road Risk", size=120, bold=True, color=WHITE)
-    P.text(tx, 6.7, W - tx - M, 3.0, "Big Data y modelado predictivo geoespacial para priorizar intervenciones "
+    P.text(tx, 0.9, W - tx - M, 4.6, "Chicago Road Risk", size=120, bold=True, color=WHITE)
+    P.text(tx, 7.0, W - tx - M, 3.0, "Big Data y modelado predictivo geoespacial para priorizar intervenciones "
            "de seguridad vial en la Ciudad de Chicago", size=29, color=RGBColor(0xDD, 0xE6, 0xEE))
-    P.text(tx, 10.1, W - tx - M, 1.6, "Deivid Julian Cardenas Melo  ·  Dillan Alexander Cardenas Melo  ·  "
-           "Camilo Escandón Romero", size=28, bold=True, color=WHITE)
+    P.text(tx, 9.7, W - tx - M, 1.6, "Deivid Julian Cardenas Melo  ·  Dillan Alexander Cardenas Melo", size=28, bold=True, color=WHITE)
     P.text(tx, 11.8, W - tx - M, 1.3, "Universidad CESMAG · San Juan de Pasto, Colombia", size=24,
            color=RGBColor(0xC9, 0xD6, 0xE0))
 
