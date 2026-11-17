@@ -2,7 +2,7 @@
 
 Plataforma open source y contenerizada para analizar y predecir la severidad de los siniestros viales de la Ciudad de Chicago. Integra los datasets abiertos de siniestros, vehículos, personas, aforos vehiculares (AADT) y permisos de obra de CDOT. Los datos pasan por una arquitectura Medallion (Bronze, Silver y Gold) y se exploran en un mapa WebGL con un simulador de riesgo en vivo.
 
-El plan de implementación por fases está en [plan_de_implementacion_fases.md](plan_de_implementacion_fases.md). Las métricas y los hallazgos del proyecto están en [docs/INFORME_RESULTADOS.md](docs/INFORME_RESULTADOS.md).
+El plan de implementación por fases está en [docs/plan_de_implementacion_fases.md](docs/plan_de_implementacion_fases.md). Las métricas y los hallazgos del proyecto están en [docs/INFORME_RESULTADOS.md](docs/INFORME_RESULTADOS.md).
 
 ## Arquitectura
 
@@ -179,5 +179,7 @@ frontend/
   src/components/tour/    guía de uso con Driver.js: recorrido completo, guía por sección y puntos de ayuda
   nginx.conf              proxy /api, caché MVT persistente, gzip_static, CSP
 .github/workflows/ci.yml  integración continua (frontend, backend y Docker)
+docs/                     ficha del proyecto (v1.1 y anteriores), plan por fases, informe de resultados,
+                          validación de modelos, ADR, póster y capturas
 data/                     raw (Bronze) · processed (Silver/Gold Parquet, reportes) · duckdb
 ```

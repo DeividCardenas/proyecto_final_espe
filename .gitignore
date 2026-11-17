@@ -25,3 +25,6 @@ postgis_data/
 # Entornos y Secretos
 .env
 .env.local
+
+# Notas de trabajo de agentes (no forman parte del entregable)
+.agents/

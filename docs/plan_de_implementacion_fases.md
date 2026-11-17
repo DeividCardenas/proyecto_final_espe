@@ -39,7 +39,7 @@ El marco metodológico adopta las directrices de iniciativas globales de probada
 | **OE4** | **Plataforma Web Analítica y Dashboard Cartográfico** | Servicio API REST asíncrono con FastAPI (endpoints GeoJSON de alto rendimiento, consultas BBOX y predicción en vivo) integrado a un Frontend en React 18 + MapLibre GL JS v4 (WebGL2) con componentes analíticos (Chart.js / Recharts) y virtualización tabular. | Tiempo de respuesta de API < 2.0 s; renderizado fluido a 60 FPS en pan/zoom; filtrado reactivo inmediato por GPU; empaquetamiento total en `docker-compose.yml`. |
 
 ### 1.4 Equipo del Proyecto, Roles y Gobernanza
-De acuerdo con la Ficha Canónica de Proyecto (`FichaDeProyecto_EspBigData_Completada.docx`), los roles y responsabilidades se asignan como sigue:
+De acuerdo con la Ficha Canónica de Proyecto (`docs/ficha/anteriores/FichaDeProyecto_EspBigData_Completada.docx`; la versión vigente es `docs/ficha/FichaDeProyecto_EspBigData_v1.1.docx`), los roles y responsabilidades se asignan como sigue:
 
 ```
 +----------------------------------------------------------------------------------------------------+
