@@ -52,7 +52,8 @@ body {
 }
 .maplibregl-ctrl-attrib {
   background: rgb(var(--slate-950) / 0.8) !important;
-  color: rgb(var(--slate-400));
+  /* MapLibre fija un gris casi negro con más especificidad: sin !important el texto no se lee */
+  color: rgb(var(--slate-300) / 0.8) !important;
 }
 /* El botón (i) de MapLibre es un icono negro: se invierte para que se vea sobre el fondo oscuro */
 .maplibregl-ctrl-attrib-button {
