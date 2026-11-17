@@ -48,3 +48,18 @@ describe("guía de uso", () => {
     expect(document.querySelector(".driver-popover-progress-text")?.textContent).toMatch(/1 de \d+/);
   });
 });
+
+describe("portada", () => {
+  beforeEach(() => sessionStorage.clear());
+
+  it("se muestra una vez por sesión y se puede saltar con ?intro=0", async () => {
+    const { introSeen, INTRO_SEEN_KEY } = await import("@/components/intro/IntroScreen");
+    expect(introSeen()).toBe(false);
+    sessionStorage.setItem(INTRO_SEEN_KEY, "1");
+    expect(introSeen()).toBe(true);
+    sessionStorage.clear();
+    window.history.replaceState(null, "", "/?intro=0");
+    expect(introSeen()).toBe(true);
+    window.history.replaceState(null, "", "/");
+  });
+});

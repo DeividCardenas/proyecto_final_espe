@@ -1,0 +1,55 @@
+{
+  "generated_at": "2026-11-17T20:48:53.316075+00:00",
+  "crashes": {"n": 424304, "date_min": "2023-01-01T00:00:00", "date_max": "2026-11-12T00:05:00", "critical": 6689, "critical_rate": 0.01576, "fatalities": 450, "fatal_crashes": 414},
+  "silver_counts": {"silver_crashes": 424304, "silver_vehicles": 866060, "silver_people": 932898, "silver_road_permits": 261088, "silver_traffic_counts": 1279, "crashes_quarantine": 4514},
+  "enrichment": {"aadt_imputed_rate": 0.15181, "active_workzone_rate": 0.29229},
+  "vulnerable": {
+    "PEDESTRIAN": {"n": 11230, "critical": 1620, "critical_rate": 0.14426},
+    "PEDALCYCLIST": {"n": 9217, "critical": 733, "critical_rate": 0.07953}
+  },
+  "speed": [
+    {"mph": 15, "n": 14762, "critical": 103, "critical_rate": 0.00698},
+    {"mph": 20, "n": 18147, "critical": 181, "critical_rate": 0.00997},
+    {"mph": 25, "n": 30413, "critical": 374, "critical_rate": 0.0123},
+    {"mph": 30, "n": 317474, "critical": 5185, "critical_rate": 0.01633},
+    {"mph": 35, "n": 23017, "critical": 545, "critical_rate": 0.02368},
+    {"mph": 40, "n": 4115, "critical": 143, "critical_rate": 0.03475}
+  ],
+  "lighting": [
+    {"lighting": "DAYLIGHT", "n": 270549, "critical": 3728, "critical_rate": 0.01378},
+    {"lighting": "DARKNESS, LIGHTED ROAD", "n": 89180, "critical": 2191, "critical_rate": 0.02457},
+    {"lighting": "UNKNOWN", "n": 28458, "critical": 99, "critical_rate": 0.00348},
+    {"lighting": "DARKNESS", "n": 18334, "critical": 339, "critical_rate": 0.01849},
+    {"lighting": "DUSK", "n": 10948, "critical": 195, "critical_rate": 0.01781},
+    {"lighting": "DAWN", "n": 6835, "critical": 137, "critical_rate": 0.02004}
+  ],
+  "corridors": [
+    {"street": "WESTERN AVE", "critical": 207, "fatalities": 14, "crashes": 11741},
+    {"street": "CICERO AVE", "critical": 178, "fatalities": 13, "crashes": 9827},
+    {"street": "PULASKI RD", "critical": 177, "fatalities": 17, "crashes": 10373},
+    {"street": "HALSTED ST", "critical": 157, "fatalities": 20, "crashes": 7825},
+    {"street": "ASHLAND AVE", "critical": 146, "fatalities": 12, "crashes": 9200},
+    {"street": "KEDZIE AVE", "critical": 107, "fatalities": 5, "crashes": 7857},
+    {"street": "DAMEN AVE", "critical": 106, "fatalities": 4, "crashes": 4289},
+    {"street": "STATE ST", "critical": 93, "fatalities": 10, "crashes": 4361},
+    {"street": "MICHIGAN AVE", "critical": 89, "fatalities": 4, "crashes": 5512},
+    {"street": "DR MARTIN LUTHER KING JR DR", "critical": 85, "fatalities": 6, "crashes": 3268}
+  ],
+  "workzone": [
+    {"active_workzone": false, "n": 300284, "critical": 4829, "critical_rate": 0.01608},
+    {"active_workzone": true, "n": 124020, "critical": 1860, "critical_rate": 0.015}
+  ],
+  "high_risk_cells": 259,
+  "quality_report": {
+    "started_at": "2026-11-12T20:21:32.265427+00:00",
+    "datasets": {
+      "aadt": {"raw": 1279, "discarded": 0, "clean": 1279, "loaded": 1279, "success_rate": 1.0, "elapsed_s": 0.2},
+      "permits": {"raw": 409862, "discarded": 148774, "clean": 261088, "loaded": 261088, "success_rate": 0.637, "elapsed_s": 14.3},
+      "crashes": {"raw": 457136, "duplicates_removed": 28318, "quarantined": 4514, "quarantine_reasons": {"missing_coordinates": 4477, "zero_coordinates": 37}, "clean": 424304, "loaded": 424304, "success_rate": 0.9282, "elapsed_s": 36.7},
+      "vehicles": {"raw": 1786835, "duplicates_removed": 911903, "clean": 874932, "loaded": 866060, "success_rate": 0.4847, "elapsed_s": 37.4},
+      "people": {"raw": 1871105, "duplicates_removed": 928572, "clean": 942533, "loaded": 932898, "success_rate": 0.4986, "elapsed_s": 41.9}
+    },
+    "integrity": {"silver_crashes": 424304, "silver_vehicles": 866060, "silver_people": 932898, "silver_traffic_counts": 1279, "silver_road_permits": 261088, "crashes_quarantine": 4514, "duplicate_rate": 0.0, "invalid_or_outside_geom": 0, "null_critical_rate": 0.0017, "unknown_critical_rate": 0.098, "pii_columns_present": [], "gate_passed": true},
+    "enrichment": {"buffer_meters": 250.0, "buffer_survey_ft": 820.21, "aadt_radius_meters": 500.0, "aadt_updated": 424304, "aadt_fallback_volume": 19466, "aadt_elapsed_s": 19.8, "workzone_crashes": 124020, "workzone_elapsed_s": 62.5, "crashes_total": 424304, "aadt_imputed_rate": 0.1518, "workzone_rate": 0.2923, "police_reported_workzone": 1295, "police_workzone_matched_by_permit": 558, "cluster_elapsed_s": 12.4}
+  }
+}

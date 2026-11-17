@@ -48,20 +48,21 @@ De acuerdo con la Ficha Canónica de Proyecto (`docs/ficha/anteriores/FichaDePro
 |  TUTOR & SPONSOR ACADÉMICO: Mag. José Camilo Eraso | Institución: UNICESMAG                        |
 +----------------------------------------------------------------------------------------------------+
                                                   |
-         +----------------------------------------+----------------------------------------+
-         |                                        |                                        |
-         v                                        v                                        v
-+-----------------------+        +--------------------------------+       +--------------------------+
-| DEIVID JULIAN         |        | DILLAN ALEXANDER               |       | CAMILO                   |
-| CARDENAS MELO         |        | CARDENAS MELO                  |       | ESCANDÓN ROMERO          |
-| Ingeniero de Datos /  |        | Científico de Datos /          |       | Desarrollador Web /      |
-| Líder de Proyecto     |        | Modelador Predictivo           |       | Especialista BI & QA     |
-+-----------------------+        +--------------------------------+       +--------------------------+
-| - Arquitectura DB     |        | - Análisis Exploratorio (EDA)  |       | - Frontend React 18 SPA  |
-| - Pipeline SODA ETL   |        | - Feature Engineering          |       | - MapLibre GL JS v4      |
-| - Integridad PostGIS  |        | - Modelado RF & XGBoost        |       | - Visualización Gráfica  |
-| - Docker Orchestration|        | - Optimización de Métricas     |       | - Pruebas E2E y Calidad  |
-+-----------------------+        +--------------------------------+       +--------------------------+
+                    +-----------------------------+-----------------------------+
+                    |                                                           |
+                    v                                                           v
++------------------------------------------+        +--------------------------------+
+| DEIVID JULIAN CARDENAS MELO              |        | DILLAN ALEXANDER               |
+| Ingeniero de Datos / Líder de Proyecto   |        | CARDENAS MELO                  |
+| y Desarrollo Web                         |        | Científico de Datos /          |
+|                                          |        | Modelador Predictivo           |
++------------------------------------------+        +--------------------------------+
+| - Arquitectura DB                        |        | - Análisis Exploratorio (EDA)  |
+| - Pipeline SODA ETL                      |        | - Feature Engineering          |
+| - Integridad PostGIS                     |        | - Modelado RF & XGBoost        |
+| - Docker Orchestration                   |        | - Optimización de Métricas     |
+| - Frontend React 18 + MapLibre GL JS     |        | - Visualización de resultados  |
++------------------------------------------+        +--------------------------------+
 ```
 
 ### 1.5 Restricciones y Parámetros Operativos
@@ -1036,7 +1037,7 @@ El plan desglosa las **13 semanas académicas** en **6 Fases Secuenciales**, cad
 | FASE 2  | Pipeline ETL, Ingesta SODA y Enriquecimiento Topológico     | Sem. 3-6  | Deivid Cardenas|
 | FASE 3  | Feature Engineering, Modelado Predictivo y Serialización    | Sem. 6-9  | Alex. Cardenas |
 | FASE 4  | Backend API Asíncrona, Endpoints Geoespaciales y Predicción | Sem. 9-11 | Deivid Cardenas|
-| FASE 5  | Frontend React WebGL, Dashboard Analítico y Virtualización  | Sem. 10-12| Camilo Escandón|
+| FASE 5  | Frontend React WebGL, Dashboard Analítico y Virtualización  | Sem. 10-12| Deivid Cardenas|
 | FASE 6  | Orquestación Docker, Optimización, Testing E2E y Despliegue | Sem. 12-13| Todo el Equipo |
 +---------+-------------------------------------------------------------+-----------+----------------+
 ```
@@ -1201,7 +1202,7 @@ docker compose exec db psql -U chicago_admin -d chicago_safety -c "
 ### FASE 3: FEATURE ENGINEERING, MODELADO PREDICTIVO Y SERIALIZACIÓN
 * **Duración:** Semanas 6 a 9 (~65 horas de esfuerzo conjunto).
 * **Alineación con Objetivos:** Cumplimiento directo del **Objetivo Específico OE3**.
-* **Responsable Principal:** Dillan Alexander Cardenas Melo (Científico de Datos / Modelador Predictivo). Colabora: Camilo Escandón Romero.
+* **Responsable Principal:** Dillan Alexander Cardenas Melo (Científico de Datos / Modelador Predictivo).
 * **Prerrequisitos:** Fase 2 completada; dataset Silver completamente enriquecido con volúmenes de tráfico y afectación de obras en PostgreSQL y DuckDB.
 
 #### Tareas Técnicas Detalladas:
@@ -1256,7 +1257,7 @@ pytest backend/tests/test_ml_inference.py -v
 ### FASE 4: BACKEND API ASÍNCRONA, ENDPOINTS GEOESPACIALES Y PREDICCIÓN EN VIVO
 * **Duración:** Semanas 9 a 11 (~45 horas de esfuerzo conjunto).
 * **Alineación con Objetivos:** Cumplimiento directo del **Objetivo Específico OE4**.
-* **Responsable Principal:** Deivid Julian Cardenas Melo (Ingeniero de Datos / Backend). Colabora: Camilo Escandón Romero.
+* **Responsable Principal:** Deivid Julian Cardenas Melo (Ingeniero de Datos / Backend).
 * **Prerrequisitos:** Fase 1 y Fase 3 completadas; modelo `.joblib` generado y accesible; base de datos PostGIS con datos Silver indexados.
 
 #### Tareas Técnicas Detalladas:
@@ -1317,7 +1318,7 @@ pytest backend/tests/test_api_health.py backend/tests/test_spatial_queries.py -v
 ### FASE 5: FRONTEND CARTOGRÁFICO WEBGL, DASHBOARD ANALÍTICO Y VIRTUALIZACIÓN
 * **Duración:** Semanas 10 a 12 (~65 horas de esfuerzo conjunto).
 * **Alineación con Objetivos:** Cumplimiento directo del **Objetivo Específico OE4**.
-* **Responsable Principal:** Camilo Escandón Romero (Desarrollador Web / Especialista en BI). Colabora: Dillan Alexander Cardenas Melo.
+* **Responsable Principal:** Deivid Julian Cardenas Melo (Ingeniero de Datos / Desarrollo Web). Colabora: Dillan Alexander Cardenas Melo.
 * **Prerrequisitos:** Fase 4 completada; endpoints de FastAPI en funcionamiento y documentados en `/docs`; Node.js 20 LTS instalado en el entorno de desarrollo.
 
 #### Tareas Técnicas Detalladas:
@@ -1387,7 +1388,7 @@ npm run dev
 ### FASE 6: ORQUESTACIÓN MULTI-CONTENEDOR, OPTIMIZACIÓN, TESTING E2E Y DESPLIEGUE FINAL
 * **Duración:** Semanas 12 a 13 (~25 horas de esfuerzo conjunto).
 * **Alineación con Objetivos:** Consolidación global de **OE1, OE2, OE3 y OE4**.
-* **Responsable Principal:** Todo el equipo de proyecto (Deivid Cardenas, Alexander Cardenas, Camilo Escandón).
+* **Responsable Principal:** Todo el equipo de proyecto (Deivid Cardenas y Dillan Alexander Cardenas).
 * **Prerrequisitos:** Fases 1 a 5 completadas y verificadas individualmente; archivos Dockerfile y `nginx.conf` redactados.
 
 #### Tareas Técnicas Detalladas:

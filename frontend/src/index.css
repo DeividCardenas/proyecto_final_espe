@@ -313,3 +313,62 @@ body {
   --driver-hint-color: rgb(var(--cyan-400));
   --driver-hint-size: 18px;
 }
+
+/* ============================================================================
+   PORTADA (IntroScreen): primera pantalla al abrir la app, en todas las pieles
+   ========================================================================== */
+.intro-grid {
+  background:
+    linear-gradient(rgb(var(--cyan-500) / 0.06) 1px, transparent 1px) 0 0 / 56px 56px,
+    linear-gradient(90deg, rgb(var(--cyan-500) / 0.06) 1px, transparent 1px) 0 0 / 56px 56px,
+    radial-gradient(ellipse 60% 70% at 72% 50%, rgb(var(--cyan-700) / 0.22), transparent 70%);
+  mask-image: radial-gradient(ellipse 90% 90% at 60% 50%, #000 40%, transparent 100%);
+}
+/* Oscurece la izquierda para que el texto se lea sobre los puntos */
+.intro-vignette {
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgb(var(--slate-950) / 0.92) 0%, rgb(var(--slate-950) / 0.6) 42%, transparent 70%),
+    radial-gradient(ellipse at center, transparent 55%, rgb(var(--slate-950) / 0.7) 100%);
+}
+@media (max-width: 899px) {
+  .intro-vignette { background: rgb(var(--slate-950) / 0.72); }
+}
+.intro-hl {
+  color: var(--critical);
+  text-shadow: 0 0 28px color-mix(in srgb, var(--critical) 45%, transparent);
+}
+.intro-critical { color: var(--critical); }
+.intro-dot {
+  background: var(--critical);
+  box-shadow: 0 0 0 0 var(--critical);
+  animation: intro-ping 1.8s ease-out infinite;
+}
+.intro-key-dot { display: inline-block; width: 8px; height: 8px; border-radius: 9999px; }
+.intro-cta { box-shadow: 0 0 0 0 rgb(var(--cyan-400) / 0.6), 0 10px 30px rgb(var(--cyan-500) / 0.35); animation: intro-cta 2.4s ease-out 1.6s infinite; }
+.intro-rise { opacity: 0; animation: intro-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) forwards; }
+.intro-screen { animation: intro-in 0.5s ease-out; }
+.intro-leave { animation: intro-out 0.65s cubic-bezier(0.6, 0, 0.8, 0.4) forwards; pointer-events: none; }
+
+@keyframes intro-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes intro-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes intro-out { to { opacity: 0; transform: scale(1.06); filter: blur(6px); } }
+@keyframes intro-ping {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--critical) 70%, transparent); }
+  100% { box-shadow: 0 0 0 12px transparent; }
+}
+@keyframes intro-cta {
+  0% { box-shadow: 0 0 0 0 rgb(var(--cyan-400) / 0.55), 0 10px 30px rgb(var(--cyan-500) / 0.35); }
+  70%, 100% { box-shadow: 0 0 0 16px rgb(var(--cyan-400) / 0), 0 10px 30px rgb(var(--cyan-500) / 0.35); }
+}
+[data-theme="tron"] .intro-cta, [data-theme="cyberpunk"] .intro-cta { border-radius: 2px; }
+[data-theme="cyberpunk"] .intro-cta { clip-path: polygon(0 0, 100% 0, 100% 70%, calc(100% - 14px) 100%, 0 100%); animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-rise, .intro-screen, .intro-dot, .intro-cta { animation: none; opacity: 1; }
+  .intro-leave { animation: none; opacity: 0; }
+}
+/* Pieles con títulos muy anchos (Orbitron, mayúsculas espaciadas): se contienen en la portada */
+[data-theme="tron"] .intro-screen .hud-title { letter-spacing: 0.04em; }
+[data-theme="tron"] .intro-title { font-size: clamp(2rem, 3.6vw, 3.6rem); line-height: 1.12; }
+[data-theme="tron"] .intro-screen .hud-kpi { font-size: clamp(1.6rem, 2vw, 2.1rem); }

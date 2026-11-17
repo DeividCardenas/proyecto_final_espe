@@ -28,3 +28,6 @@ postgis_data/
 
 # Notas de trabajo de agentes (no forman parte del entregable)
 .agents/
+
+# Exportes temporales del PC para el póster y la página (no versionar)
+entrega_tmp/

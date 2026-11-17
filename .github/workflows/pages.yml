@@ -1,0 +1,38 @@
+# Publica la página fija del proyecto (site/) en GitHub Pages.
+# Requiere, una sola vez: Settings → Pages → Source: "GitHub Actions".
+name: Página del proyecto
+
+on:
+  push:
+    branches: [master]
+    paths: ["site/**", "docs/informe/figuras/**", "docs/poster/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Copiar figuras y póster
+        run: |
+          mkdir -p site/img/figuras site/descargas
+          cp docs/informe/figuras/*.png site/img/figuras/
+          cp docs/poster/*.pdf site/descargas/ 2>/dev/null || true
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4

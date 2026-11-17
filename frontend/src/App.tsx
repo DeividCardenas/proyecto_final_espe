@@ -7,7 +7,8 @@ import { MapContainer } from "@/components/map/MapContainer";
 import { MapControls } from "@/components/map/MapControls";
 import { MapLegend } from "@/components/map/MapLegend";
 import { GuideInvite } from "@/components/tour/GuideInvite";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { IntroScreen, introSeen } from "@/components/intro/IntroScreen";
 import { useTheme } from "@/stores/useThemeStore";
 import { applyThemeVars } from "@/theme/themes";
 import { loadThemeFonts } from "@/theme/fonts";
@@ -26,6 +27,8 @@ function ThemeSync() {
 }
 
 export default function App() {
+  // La portada se monta encima: el mapa y los datos cargan detrás mientras se lee
+  const [intro, setIntro] = useState(() => !introSeen());
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeSync />
@@ -38,7 +41,7 @@ export default function App() {
               <MapContainer>
                 <MapControls />
                 <MapLegend />
-                <GuideInvite />
+                {!intro && <GuideInvite />}
               </MapContainer>
             </div>
             <DataDrawer />
@@ -46,6 +49,7 @@ export default function App() {
           <AnalyticsPanel />
         </div>
       </div>
+      {intro && <IntroScreen onClose={() => setIntro(false)} />}
     </QueryClientProvider>
   );
 }
