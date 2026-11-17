@@ -43,7 +43,7 @@ NAME = "Poster_Chicago_Road_Risk_final"
 PAGE_URL = "https://deividcardenas.github.io/proyecto_final_espe/"
 INFORME_URL = "https://github.com/DeividCardenas/proyecto_final_espe/blob/master/docs/INFORME_RESULTADOS.md"
 
-FONT = "Calibri"  # en LibreOffice se sustituye por Carlito (mismas métricas)
+FONT = "Inter"  # libre (Google Fonts); el PDF la incrusta, para editar el PPTX instálela
 NAVY, INK, MUTED = RGBColor(0x0F, 0x1F, 0x2E), RGBColor(0x13, 0x21, 0x2E), RGBColor(0x5B, 0x6B, 0x78)
 TEAL, TEAL_SOFT = RGBColor(0x0B, 0x7A, 0x85), RGBColor(0xE3, 0xF2, 0xF3)
 ORANGE, ORANGE_SOFT = RGBColor(0xD9, 0x60, 0x0F), RGBColor(0xFC, 0xEB, 0xDF)
@@ -74,7 +74,6 @@ def load_figuras_module():
     spec.loader.exec_module(gf)
     gf.OUT = FIGDIR
     gf.DPI = 400
-    plt.rcParams["font.family"] = "Carlito"
     return gf
 
 
@@ -94,7 +93,7 @@ def mapa(datos: Path, seg_top: pd.DataFrame, out: Path) -> None:
         near = any(abs(r.lon - x) < 0.02 and abs(r.lat - y) < 0.015 for x, y in placed)
         placed.append((r.lon, r.lat))
         ax.annotate(str(i), (r.lon, r.lat), xytext=(-30, -4) if near else (14, 10), textcoords="offset points",
-                    color="white", fontsize=22, fontweight="bold", fontfamily="Carlito",
+                    color="white", fontsize=22, fontweight="bold", fontfamily="Inter",
                     ha="right" if near else "left")
     ax.set_xlim(pts["longitude"].quantile(0.0005) - 0.01, pts["longitude"].quantile(0.9995) + 0.01)
     ax.set_ylim(pts["latitude"].quantile(0.0005) - 0.005, pts["latitude"].quantile(0.9995) + 0.005)
@@ -234,8 +233,8 @@ def build(datos: Path) -> None:
     tx = M + 21 + 3.0
     P.text(tx, 1.4, W - tx - M, 4.6, "Chicago Road Risk", size=120, bold=True, color=WHITE)
     P.text(tx, 6.7, W - tx - M, 3.0, "Big Data y modelado predictivo geoespacial para priorizar intervenciones "
-           "de seguridad vial en la Ciudad de Chicago", size=34, color=RGBColor(0xDD, 0xE6, 0xEE))
-    P.text(tx, 10.0, W - tx - M, 1.6, "Deivid Julian Cardenas Melo  ·  Dillan Alexander Cardenas Melo  ·  "
+           "de seguridad vial en la Ciudad de Chicago", size=29, color=RGBColor(0xDD, 0xE6, 0xEE))
+    P.text(tx, 10.1, W - tx - M, 1.6, "Deivid Julian Cardenas Melo  ·  Dillan Alexander Cardenas Melo  ·  "
            "Camilo Escandón Romero", size=28, bold=True, color=WHITE)
     P.text(tx, 11.8, W - tx - M, 1.3, "Universidad CESMAG · San Juan de Pasto, Colombia", size=24,
            color=RGBColor(0xC9, 0xD6, 0xE0))
@@ -252,8 +251,8 @@ def build(datos: Path) -> None:
            size=74, bold=True, color=INK, spacing=0.93)
     P.text(M, HY + 8.1, qx0 - M - 1.5, 2.8,
            f"Validado con un año que el modelo nunca vio (nov 2025 – nov 2026): {fmt(cap * 100)} % de los graves "
-           f"cayó en el 10 % de cuadras priorizadas, {fmt(cap * 10)} veces lo esperado al azar.",
-           size=28, color=MUTED)
+           f"cayó en el 10 % de cuadras priorizadas ({fmt(cap * 10)} veces el azar).",
+           size=25, color=MUTED)
     for i, (img, label) in enumerate([("qr_pagina.png", "Demo y capturas"), ("qr_informe.png", "Informe completo")]):
         x = qx0 + i * (qr_w + 1.6)
         P.rect(x - 0.3, HY + 0.9, qr_w + 0.6, qr_w + 0.6, WHITE, radius=0.05)
@@ -266,14 +265,14 @@ def build(datos: Path) -> None:
     P.text(M, y0 + 3.0, lw, 5.0,
            f"En casi cuatro años Chicago registró {thousands(c['crashes']['n'])} siniestros y "
            f"{c['crashes']['fatalities']} fallecidos. Los graves son pocos (1,6 %) y están dispersos; el "
-           "presupuesto para reformar vías solo alcanza para algunos tramos.", size=28)
-    P.rect(M, y0 + 8.4, lw, 5.2, NAVY, radius=0.06)
-    P.text(M + 1.0, y0 + 8.85, lw - 2.0, 4.4,
+           "presupuesto para reformar vías solo alcanza para algunos tramos.", size=25)
+    P.rect(M, y0 + 8.6, lw, 5.6, NAVY, radius=0.06)
+    P.text(M + 1.0, y0 + 9.1, lw - 2.0, 4.8,
            [[("Pregunta de decisión", {"size": 24, "bold": True, "color": RGBColor(0x7F, 0xD3, 0xDA)})],
             "¿Cómo usar un modelo predictivo para priorizar intervenciones preventivas en los tramos de mayor riesgo?"],
-           size=26, color=WHITE, after=4)
+           size=24, color=WHITE, after=4)
 
-    y1 = y0 + 14.6
+    y1 = y0 + 15.1
     P.section(M, y1, lw, 2, "Datos abiertos integrados")
     tiles = [(thousands(c["silver_counts"]["silver_crashes"]), "siniestros"),
              (thousands(c["silver_counts"]["silver_people"]), "personas (anonimizadas)"),
@@ -313,20 +312,30 @@ def build(datos: Path) -> None:
     P.image(FIGDIR / "mapa_prioridad.png", mx + 0.5, y0 + 3.5, h=map_h - 1.0)
     lx = mx + 0.5 + img_w + 0.5
     lw2 = mx + mw - lx - 0.8
-    P.text(lx, y0 + 4.3, lw2, 6.0,
-           [[(f"{thousands(len(top))} cuadras", {"color": RGBColor(0xF0, 0x8A, 0x45), "bold": True}),
-             (": el 10 % con mayor probabilidad de riesgo Alto en los próximos 12 meses", {})]],
-           size=24, color=WHITE)
-    P.text(lx, y0 + 10.6, lw2, 1.5, "Las 10 primeras", size=24, bold=True, color=RGBColor(0x7F, 0xD3, 0xDA))
+    LIGHT, ACC, AQUA = RGBColor(0xC9, 0xD6, 0xE0), RGBColor(0xF0, 0x8A, 0x45), RGBColor(0x7F, 0xD3, 0xDA)
+    top_y, bot_y = y0 + 4.4, y0 + 3.0 + map_h - 1.0
+    P.text(lx, top_y, lw2, 3.6, thousands(len(top)), size=96, bold=True, color=ACC)
+    P.text(lx, top_y + 4.3, lw2, 3.4, "cuadras priorizadas: el 10 % con mayor probabilidad de riesgo Alto en los "
+           "próximos 12 meses", size=24, color=WHITE)
+    P.rect(lx, top_y + 8.2, lw2, 0.08, RGBColor(0x2A, 0x3D, 0x4D))
+    P.text(lx, top_y + 8.6, lw2, 1.6, "Las 10 primeras", size=26, bold=True, color=AQUA)
+    P.text(lx, top_y + 8.75, lw2, 1.4, "P(Alto)", size=20, color=LIGHT, align=PP_ALIGN.RIGHT)
+    legend_h = 5.2
+    row0 = top_y + 10.7
+    step = (bot_y - legend_h - row0) / 10
     for i, t in enumerate(fc["top10"], start=1):
-        P.text(lx, y0 + 12.4 + (i - 1) * 1.85, lw2, 1.8,
-               [[(f"{i}  ", {"bold": True, "color": RGBColor(0xF0, 0x8A, 0x45)}), (calle(t["segment_id"]), {})]],
-               size=21, color=WHITE)
-    P.text(lx, y0 + 31.6, lw2, 6.0,
-           [[("● ", {"color": RGBColor(0xF0, 0x8A, 0x45)}), ("cuadra priorizada (mayor = más probable)", {})],
-            [("● ", {"color": RGBColor(0x3D, 0x8A, 0x93)}), ("siniestro 2023–2026", {})],
-            [("○ ", {"color": WHITE}), ("las 10 primeras", {})]],
-           size=20, color=RGBColor(0xC9, 0xD6, 0xE0), after=4)
+        ry = row0 + (i - 1) * step
+        if i % 2 == 1:
+            P.rect(lx - 0.3, ry - 0.25, lw2 + 0.6, step - 0.05, RGBColor(0x12, 0x22, 0x31), radius=0.15)
+        P.text(lx, ry, lw2 - 4.0, step,
+               [[(f"{i:>2}   ", {"bold": True, "color": ACC}), (calle(t["segment_id"]), {})]], size=23, color=WHITE)
+        P.text(lx + lw2 - 4.0, ry, 4.0, step, f"{round(t['p_alto'] * 100)} %", size=23, bold=True,
+               color=LIGHT, align=PP_ALIGN.RIGHT)
+    P.text(lx, bot_y - legend_h + 0.6, lw2, legend_h,
+           [[("● ", {"color": ACC}), ("cuadra priorizada (mayor = más probable)", {})],
+            [("● ", {"color": RGBColor(0x4F, 0xA3, 0xAD)}), ("siniestro 2023–2026", {})],
+            [("○ ", {"color": WHITE}), ("las 10 primeras, numeradas", {})]],
+           size=21, color=LIGHT, after=5)
 
     # ---- Resultados
     y3 = body_end + 1.3
