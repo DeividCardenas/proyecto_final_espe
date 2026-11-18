@@ -2,14 +2,37 @@ import { useMapStore } from "@/stores/useMapStore";
 import { useTheme } from "@/stores/useThemeStore";
 import { RISK_COLORS } from "./layers/RiskChoroplethLayer";
 import { segmentColors } from "./layers/SegmentRiskLayer";
+import { ChevronDown, Layers } from "lucide-react";
+import { useShallow } from "zustand/react/shallow";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { useUiStore } from "@/stores/useUiStore";
 
 export function MapLegend() {
   const theme = useTheme();
   const SEVERITY_COLORS = theme.severity;
   const layers = useMapStore((s) => s.layers);
   const zoom = useMapStore((s) => s.zoom);
+  const mobile = useIsMobile();
+  const { legendOpen, setLegendOpen } = useUiStore(useShallow((s) => ({ legendOpen: s.legendOpen, setLegendOpen: s.setLegendOpen })));
+  // Móvil: plegada en un botón pequeño para no tapar el mapa; se despliega al tocarla
+  if (mobile && !legendOpen) {
+    return (
+      <button data-tour="legend" onClick={() => setLegendOpen(true)} aria-expanded={false}
+        className="hud-panel absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/90 px-3 py-1.5 text-[11px] font-medium text-slate-200 backdrop-blur">
+        <Layers size={13} className="text-cyan-300" /> Leyenda
+      </button>
+    );
+  }
   return (
-    <div data-tour="legend" className="hud-panel absolute bottom-6 left-3 w-56 space-y-2 rounded-xl border border-slate-800 bg-slate-900/90 p-3 text-[11px] text-slate-300 backdrop-blur">
+    <div data-tour="legend" className={mobile
+      ? "hud-panel absolute bottom-2 left-2 max-h-[calc(100%-1rem)] w-[min(15rem,calc(100%-4.5rem))] space-y-2 overflow-y-auto rounded-xl border border-slate-800 bg-slate-900/95 p-2.5 text-[11px] text-slate-300 backdrop-blur"
+      : "hud-panel absolute bottom-6 left-3 w-56 space-y-2 rounded-xl border border-slate-800 bg-slate-900/90 p-3 text-[11px] text-slate-300 backdrop-blur"}>
+      {mobile && (
+        <button onClick={() => setLegendOpen(false)} aria-expanded={true}
+          className="-mb-1 flex w-full items-center justify-between text-[11px] font-semibold text-slate-200">
+          Leyenda <ChevronDown size={14} className="text-slate-400" aria-label="Plegar leyenda" />
+        </button>
+      )}
       {layers.heatmap && (
         <div>
           <p className="mb-1 font-semibold text-slate-200">Densidad ponderada por severidad</p>

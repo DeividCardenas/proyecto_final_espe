@@ -85,11 +85,12 @@ function FiltersPanel() {
   const active = activeFilterCount(f);
 
   return (
-    <aside className="hud-aside flex w-64 shrink-0 flex-col gap-5 overflow-y-auto border-r border-slate-800 bg-slate-950/85 p-4"
+    <aside className="hud-aside flex w-64 shrink-0 flex-col gap-5 overflow-y-auto border-r border-slate-800 bg-slate-950/85 p-4
+        max-md:absolute max-md:inset-0 max-md:z-30 max-md:w-full max-md:bg-slate-950 max-md:pb-6"
       aria-label="Filtros y capas" data-testid="filters-panel">
       <div className="-mb-2 flex items-center justify-between">
         <p className="text-xs font-semibold text-slate-200">Filtros y capas</p>
-        <button onClick={toggleFilters} aria-label="Cerrar filtros" className="text-slate-400 hover:text-slate-200"><X size={14} /></button>
+        <button onClick={toggleFilters} aria-label="Cerrar filtros" className="grid h-8 w-8 place-items-center text-slate-400 hover:text-slate-200 md:h-auto md:w-auto"><X size={16} /></button>
       </div>
 
       <section>
@@ -165,6 +166,10 @@ function FiltersPanel() {
       <button onClick={f.reset} disabled={active === 0}
         className="mt-auto flex items-center justify-center gap-1.5 rounded-lg border border-slate-700 py-1.5 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-40">
         <RotateCcw size={12} /> Restablecer filtros{active > 0 && ` (${active})`}
+      </button>
+      {/* Móvil: el panel ocupa la pantalla; un botón claro para volver al mapa con los filtros aplicados */}
+      <button onClick={toggleFilters} className="-mt-2 rounded-lg bg-cyan-600 py-2 text-sm font-semibold text-white hover:bg-cyan-500 md:hidden">
+        Ver mapa
       </button>
     </aside>
   );

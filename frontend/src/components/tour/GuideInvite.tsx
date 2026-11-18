@@ -15,7 +15,7 @@ export function GuideInvite() {
   };
   return (
     <div role="status" data-testid="guide-invite"
-      className="hud-panel absolute bottom-6 right-3 z-20 w-72 rounded-xl border border-slate-700 bg-slate-900/95 p-3 shadow-xl backdrop-blur">
+      className="hud-panel absolute inset-x-2 bottom-2 z-20 md:inset-x-auto md:bottom-6 md:right-3 md:w-72 rounded-xl border border-slate-700 bg-slate-900/95 p-3 shadow-xl backdrop-blur">
       <div className="flex items-start gap-2">
         <Compass size={16} className="mt-0.5 shrink-0 text-cyan-300" />
         <div className="min-w-0 flex-1">

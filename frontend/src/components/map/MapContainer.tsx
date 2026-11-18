@@ -12,6 +12,7 @@ import { crashService } from "@/services/crashService";
 import { useFilterStore } from "@/stores/useFilterStore";
 import { CHICAGO_CENTER, CHICAGO_MAX_BOUNDS, useMapStore, type LayerId } from "@/stores/useMapStore";
 import { useUiStore } from "@/stores/useUiStore";
+import { isMobileViewport } from "@/hooks/useIsMobile";
 import { addCrashTileLayers, HEATMAP_LAYER, POINTS_LAYER, setCrashTileUrl } from "./layers/CrashHeatmapLayer";
 import {
   addClusterLayers, CLUSTER_COUNT_LAYER, CLUSTER_LAYER, CLUSTER_SOURCE, setClusterData, setHighlight,
@@ -87,6 +88,24 @@ export function MapContainer({ children }: { children?: ReactNode }) {
     setSimulatorPoint: s.setSimulatorPoint, simulatorPoint: s.simulatorPoint, selectSegment: s.selectSegment,
     selectedSegment: s.selectedSegment, focusPoint: s.focusPoint,
   })));
+
+  // --- Móvil: la atribución (OpenStreetMap / CARTO) arranca plegada en su botón (i) ---
+  // MapLibre la despliega una sola vez al llegar las fuentes; en un teléfono ese texto tapaba
+  // la leyenda. Se pliega en cuanto aparece y queda accesible tocando la (i).
+  useEffect(() => {
+    if (!map || !isMobileViewport()) return;
+    const el = map.getContainer().querySelector<HTMLElement>(".maplibregl-ctrl-attrib");
+    if (!el) return;
+    const collapse = () => {
+      if (!el.classList.contains("maplibregl-compact-show")) return false;
+      el.classList.remove("maplibregl-compact-show");
+      return true;
+    };
+    if (collapse()) return;
+    const obs = new MutationObserver(() => { if (collapse()) obs.disconnect(); });
+    obs.observe(el, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, [map]);
 
   // --- Inicialización de capas y sincronización del viewport ---
   useEffect(() => {
