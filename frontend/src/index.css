@@ -313,6 +313,32 @@ body {
 .driver-popover.crr-guide .driver-popover-arrow-side-right.driver-popover-arrow { border-right-color: rgb(var(--slate-900)); }
 .driver-popover.crr-guide .driver-popover-arrow-side-top.driver-popover-arrow { border-top-color: rgb(var(--slate-900)); }
 .driver-popover.crr-guide .driver-popover-arrow-side-bottom.driver-popover-arrow { border-bottom-color: rgb(var(--slate-900)); }
+/* Móvil: el globo usa casi todo el ancho, con letra algo menor y el texto con scroll propio
+   para que nunca tape la pantalla entera ni se corte fuera de ella */
+@media (max-width: 767px) {
+  .driver-popover.crr-guide {
+    max-width: calc(100vw - 16px);
+    min-width: 0;
+    width: calc(100vw - 16px);
+    padding: 12px 14px;
+  }
+  .driver-popover.crr-guide .driver-popover-title {
+    font-size: 14px;
+  }
+  .driver-popover.crr-guide .driver-popover-description {
+    font-size: 12px;
+    line-height: 1.4;
+    max-height: 34dvh;
+    overflow-y: auto;
+  }
+  .driver-popover.crr-guide .crr-guide-row {
+    margin-bottom: 4px;
+  }
+  .driver-popover.crr-guide .driver-popover-footer button {
+    padding: 6px 12px;
+  }
+}
+
 /* Puntos de ayuda: color de acento del tema, sin pulso constante (no distraen) */
 :root {
   --driver-hint-color: rgb(var(--cyan-400));

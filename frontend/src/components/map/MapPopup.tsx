@@ -24,7 +24,7 @@ export function MapPopup({ crashId, coordinates, onClose }: Props) {
 
   useEffect(() => {
     if (!map) return;
-    const popup = new Popup({ maxWidth: "360px", className: "crash-popup", closeOnClick: false })
+    const popup = new Popup({ maxWidth: "min(360px, calc(100vw - 32px))", className: "crash-popup", closeOnClick: false })
       .setLngLat(coordinates)
       .setDOMContent(node)
       .addTo(map);
@@ -36,7 +36,7 @@ export function MapPopup({ crashId, coordinates, onClose }: Props) {
   }, [map, node, coordinates, onClose]);
 
   return createPortal(
-    <div className="text-slate-100 text-xs space-y-2 w-[300px]">
+    <div className="text-slate-100 text-xs space-y-2 w-[min(300px,calc(100vw-64px))]">
       {isError ? (
         <QueryError what="el detalle del siniestro" onRetry={() => void refetch()} />
       ) : isLoading || !data ? (

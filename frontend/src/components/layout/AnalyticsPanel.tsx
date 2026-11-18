@@ -1,8 +1,9 @@
-import { Suspense, useId, useRef, useState, type KeyboardEvent } from "react";
-import { HelpCircle, X } from "lucide-react";
+import { Suspense, useId, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { ChevronDown, ChevronUp, HelpCircle, X } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { startSectionTour } from "@/components/tour/launcher";
-import { useUiStore } from "@/stores/useUiStore";
+import { useUiStore, type SheetSnap } from "@/stores/useUiStore";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { cn } from "@/components/ui";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { lazyNamed } from "@/lib/lazyNamed";
@@ -79,32 +80,82 @@ function AnalyticsBento() {
   );
 }
 
+/** Altura de cada posición de la hoja inferior (móvil), relativa al alto disponible bajo la cabecera. */
+const SHEET_HEIGHT: Record<SheetSnap, string> = { peek: "3.25rem", half: "50%", full: "calc(100% - 7rem)" };
+const SHEET_ORDER: SheetSnap[] = ["peek", "half", "full"];
+
+/**
+ * Asa de la hoja inferior: tocar alterna media pantalla ↔ casi completa (o abre si está plegada);
+ * arrastrar arriba/abajo sube o baja un nivel.
+ */
+function useSheetDrag() {
+  const { sheet, setSheet } = useUiStore(useShallow((s) => ({ sheet: s.sheet, setSheet: s.setSheet })));
+  const start = useRef<number | null>(null);
+  const onPointerDown = (e: PointerEvent) => { start.current = e.clientY; };
+  const onPointerUp = (e: PointerEvent) => {
+    if (start.current === null) return;
+    const dy = e.clientY - start.current;
+    start.current = null;
+    const i = SHEET_ORDER.indexOf(sheet);
+    if (Math.abs(dy) < 12) setSheet(sheet === "half" ? "full" : "half");
+    else setSheet(SHEET_ORDER[Math.max(0, Math.min(SHEET_ORDER.length - 1, i + (dy < 0 ? 1 : -1)))]);
+  };
+  return { sheet, setSheet, handlers: { onPointerDown, onPointerUp, onPointerCancel: () => { start.current = null; } } };
+}
+
 /** Panel de la sección activa. La navegación vive sólo en la cabecera (una sola barra de secciones). */
 export function AnalyticsPanel() {
   const { activeTab, panelOpen, togglePanel } = useUiStore(
     useShallow((s) => ({ activeTab: s.activeTab, panelOpen: s.panelOpen, togglePanel: s.togglePanel })),
   );
+  const mobile = useIsMobile();
+  const { sheet, setSheet, handlers } = useSheetDrag();
   if (!panelOpen) return null;
   const tab = TABS.find((t) => t.id === activeTab) ?? TABS[0];
   return (
     <aside
       aria-label={tab.label}
-      className={cn("hud-aside flex shrink-0 flex-col border-l border-slate-800 bg-slate-950/85 transition-[width]",
-        // Se adapta a portátiles: nunca más de ~45% del ancho de la ventana
-        activeTab === "analytics" ? "w-[clamp(340px,42vw,600px)]" : "w-[clamp(320px,32vw,400px)]")}
+      data-testid="analytics-panel"
+      data-sheet={mobile ? sheet : undefined}
+      style={mobile ? { height: SHEET_HEIGHT[sheet] } : undefined}
+      className={cn("hud-aside flex shrink-0 flex-col bg-slate-950/85",
+        mobile
+          // Móvil: hoja inferior a todo el ancho, bajo el mapa (no lo tapa ni se superpone a la leyenda)
+          ? "w-full rounded-t-2xl border-t border-slate-700 shadow-[0_-8px_24px_rgba(0,0,0,0.45)] transition-[height] duration-200"
+          : cn("border-l border-slate-800 transition-[width]",
+            // Se adapta a portátiles: nunca más de ~45% del ancho de la ventana
+            activeTab === "analytics" ? "w-[clamp(340px,42vw,600px)]" : "w-[clamp(320px,32vw,400px)]"))}
     >
-      <header className="flex items-center justify-between border-b border-slate-800 px-3 py-2">
-        <div className="leading-tight">
-          <h2 className="hud-title text-sm font-semibold text-slate-100">{tab.label}</h2>
-          <p className="text-[11px] text-slate-400">{tab.hint}</p>
+      {mobile && (
+        <div {...handlers} className="flex h-4 shrink-0 touch-none cursor-grab items-end justify-center" aria-hidden="true">
+          <span className="h-1 w-10 rounded-full bg-slate-600" />
         </div>
-        <div className="flex items-center gap-2">
+      )}
+      <header {...(mobile ? handlers : {})}
+        className={cn("flex items-center justify-between gap-2 border-b border-slate-800 px-3",
+          mobile ? "touch-none pb-1.5 pt-0.5" : "py-2")}>
+        <div className="min-w-0 leading-tight">
+          <h2 className="hud-title truncate text-sm font-semibold text-slate-100">{tab.label}</h2>
+          <p className="truncate text-[11px] text-slate-400">{tab.hint}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1 md:gap-2">
+          {mobile && (
+            <button onClick={() => setSheet(sheet === "full" ? "half" : sheet === "half" ? "full" : "half")}
+              onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}
+              aria-label={sheet === "full" ? "Reducir panel" : "Ampliar panel"}
+              className="grid h-8 w-8 place-items-center text-slate-400 hover:text-slate-200">
+              {sheet === "full" ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+            </button>
+          )}
           <button onClick={() => void startSectionTour(activeTab)} aria-label={`Guía de ${tab.label}`} title={`Guía de ${tab.label}`}
-            className="text-slate-400 hover:text-slate-200"><HelpCircle size={15} /></button>
-          <button onClick={togglePanel} aria-label="Cerrar panel" className="text-slate-400 hover:text-slate-200"><X size={16} /></button>
+            onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}
+            className="text-slate-400 hover:text-slate-200 max-md:grid max-md:h-8 max-md:w-6 max-md:place-items-center"><HelpCircle size={15} /></button>
+          <button onClick={togglePanel} aria-label="Cerrar panel"
+            onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}
+            className="text-slate-400 hover:text-slate-200 max-md:grid max-md:h-8 max-md:w-6 max-md:place-items-center"><X size={16} /></button>
         </div>
       </header>
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className={cn("flex-1 overflow-y-auto overscroll-contain p-3", mobile && sheet === "peek" && "hidden")}>
         {/* Montaje condicional: los gráficos sólo existen cuando su sección está activa */}
         <ErrorBoundary area={tab.label} resetKey={activeTab}>
           <Suspense fallback={<p className="text-xs text-slate-400">Cargando módulo…</p>}>
