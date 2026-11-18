@@ -184,7 +184,7 @@ export function LineChart({
 export function RankChart({
   data, format, reference, mark = "bar", ariaLabel, domainMax,
 }: {
-  data: { label: string; value: number; note?: string; highlight?: boolean }[];
+  data: { label: string; value: number; note?: string; highlight?: boolean; muted?: boolean }[];
   format: (v: number) => string;
   reference?: Reference;
   mark?: "bar" | "dot";
@@ -214,7 +214,9 @@ export function RankChart({
               </text>
               <line x1={m.left} x2={width - m.right} y1={y0 + 18} y2={y0 + 18} stroke={t.chart.grid} />
               {mark === "bar" ? (
-                <rect x={m.left} y={y0 + 14} width={Math.max(1, x(d.value) - m.left)} height={8} rx={1} fill={color} />
+                // «muted» = referencia sin modelo: barra hueca para que no se confunda con un algoritmo
+                <rect x={m.left} y={y0 + 14} width={Math.max(1, x(d.value) - m.left)} height={8} rx={1}
+                  fill={d.muted ? "none" : color} stroke={d.muted ? TEXT_STRONG : undefined} strokeDasharray={d.muted ? "3 2" : undefined} />
               ) : (
                 <circle cx={x(d.value)} cy={y0 + 18} r={4} fill={color} />
               )}
@@ -224,7 +226,11 @@ export function RankChart({
         })}
         {reference && (
           <g pointerEvents="none">
-            <line x1={x(reference.value)} x2={x(reference.value)} y1={m.top - 2} y2={height} stroke={TEXT_STRONG} strokeDasharray="3 3" />
+            {/* Sólo a la altura de las barras: así la línea no tacha los nombres */}
+            {data.map((_, i) => (
+              <line key={i} x1={x(reference.value)} x2={x(reference.value)} y1={m.top + i * row + 12} y2={m.top + i * row + 24}
+                stroke={TEXT_STRONG} strokeDasharray="2 2" />
+            ))}
             <text x={x(reference.value)} y={9} textAnchor="middle" fontSize={FONT} fill={TEXT_STRONG}>{reference.label}</text>
           </g>
         )}

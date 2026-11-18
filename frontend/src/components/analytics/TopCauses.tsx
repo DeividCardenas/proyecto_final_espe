@@ -3,6 +3,7 @@ import { crashService } from "@/services/crashService";
 import { useKpis } from "@/hooks/useKpis";
 import { Card, fmtNumber, fmtPct } from "@/components/ui";
 import { RankChart } from "@/components/charts/d3";
+import { causeEs } from "@/lib/crashLabels";
 
 // "UNKNOWN" es el valor con el que la API marca una causa ausente
 const UNDETERMINED = new Set(["UNABLE TO DETERMINE", "NOT APPLICABLE", "UNKNOWN"]);
@@ -30,7 +31,7 @@ export function TopCauses({ hero = false }: { hero?: boolean }) {
   const undetermined = data.filter((d) => UNDETERMINED.has(d.cause)).reduce((a, d) => a + d.crashes, 0);
   const first = known[0];
   const label = (s: string) => {
-    const l = s.toLowerCase();
+    const l = causeEs(s);
     return l.length > 46 ? `${l.slice(0, 45)}…` : l;
   };
   return (
@@ -41,7 +42,7 @@ export function TopCauses({ hero = false }: { hero?: boolean }) {
       error={query.isError}
       onRetry={() => void query.refetch()}
       takeaway={first && total > 0 && (
-        <>La causa identificada más frecuente es <b>{first.cause.toLowerCase()}</b> ({fmtPct(first.crashes / total, 0)} del total).</>
+        <>La causa identificada más frecuente es <b>{causeEs(first.cause).toLowerCase()}</b> ({fmtPct(first.crashes / total, 0)} del total).</>
       )}
       context={[
         "Causa contributiva principal",

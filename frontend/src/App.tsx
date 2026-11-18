@@ -10,6 +10,7 @@ import { GuideInvite } from "@/components/tour/GuideInvite";
 import { useEffect, useState } from "react";
 import { IntroScreen, introSeen } from "@/components/intro/IntroScreen";
 import { useTheme } from "@/stores/useThemeStore";
+import { useUiStore } from "@/stores/useUiStore";
 import { applyThemeVars } from "@/theme/themes";
 import { loadThemeFonts } from "@/theme/fonts";
 
@@ -26,12 +27,30 @@ function ThemeSync() {
   return null;
 }
 
+/** Escape cierra lo último que se abre encima del mapa: la tabla y luego los filtros. */
+function EscapeToClose() {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      const t = e.target as HTMLElement | null;
+      if (t && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
+      const ui = useUiStore.getState();
+      if (ui.drawerOpen) ui.toggleDrawer();
+      else if (ui.filtersOpen) ui.toggleFilters();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  return null;
+}
+
 export default function App() {
   // La portada se monta encima: el mapa y los datos cargan detrás mientras se lee
   const [intro, setIntro] = useState(() => !introSeen());
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeSync />
+      <EscapeToClose />
       <div className="hud-app flex h-screen flex-col overflow-hidden bg-slate-950 font-sans text-slate-100">
         <Header />
         <div className="flex min-h-0 flex-1">

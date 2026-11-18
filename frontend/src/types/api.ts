@@ -149,6 +149,9 @@ export interface SegmentModelMetrics {
   comparison: Record<string, Record<string, number>>;
   confusion_matrix: number[][];
   forecast: { history_window: string; segments_scored: number; high_risk_segments: number };
+  /** Reglas sin modelo (historial del año previo) evaluadas en el mismo test */
+  baselines?: Record<string, { top10_capture_severe: number; top10_lift: number }> | null;
+  winner_vs_best_baseline?: { baseline: string; diff?: number; ci_low?: number; ci_high?: number } | null;
 }
 
 export interface SegmentFactor {

@@ -52,7 +52,12 @@ body {
 }
 .maplibregl-ctrl-attrib {
   background: rgb(var(--slate-950) / 0.8) !important;
-  color: rgb(var(--slate-500));
+  /* MapLibre fija un gris casi negro con más especificidad: sin !important el texto no se lee */
+  color: rgb(var(--slate-300) / 0.8) !important;
+}
+/* El botón (i) de MapLibre es un icono negro: se invierte para que se vea sobre el fondo oscuro */
+.maplibregl-ctrl-attrib-button {
+  filter: invert(0.85);
 }
 .maplibregl-ctrl-attrib a {
   color: rgb(var(--slate-400));
@@ -372,3 +377,17 @@ body {
 [data-theme="tron"] .intro-screen .hud-title { letter-spacing: 0.04em; }
 [data-theme="tron"] .intro-title { font-size: clamp(2rem, 3.6vw, 3.6rem); line-height: 1.12; }
 [data-theme="tron"] .intro-screen .hud-kpi { font-size: clamp(1.6rem, 2vw, 2.1rem); }
+
+/* Panel Priorizar: la cifra principal y el top 1 % con el rojo del tema, como en la portada */
+.priority-big {
+  color: var(--critical);
+  text-shadow: 0 0 24px color-mix(in srgb, var(--critical) 40%, transparent);
+}
+.priority-rank-hot {
+  background: var(--critical);
+  color: #fff;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--critical) 60%, transparent);
+}
+.priority-bar {
+  background: linear-gradient(90deg, rgb(var(--cyan-500)), var(--critical));
+}

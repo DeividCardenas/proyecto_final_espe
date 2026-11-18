@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { WEATHER_ES } from "@/lib/crashLabels";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { crashService } from "@/services/crashService";
 import { useKpis } from "@/hooks/useKpis";
@@ -6,12 +7,6 @@ import { Card, fmtNumber, fmtPct } from "@/components/ui";
 import { RankChart } from "@/components/charts/d3";
 import type { WeatherRow } from "@/types/api";
 
-const WEATHER_ES: Record<string, string> = {
-  CLEAR: "Despejado", RAIN: "Lluvia", SNOW: "Nieve", CLOUDY: "Nublado", "CLOUDY/OVERCAST": "Nublado",
-  UNKNOWN: "Desconocido", OTHER: "Otro", "FREEZING RAIN/DRIZZLE": "Lluvia helada", "FOG/SMOKE/HAZE": "Niebla",
-  "SLEET/HAIL": "Aguanieve / granizo", "BLOWING SNOW": "Ventisca", "SEVERE CROSS WIND GATE": "Viento cruzado",
-  "BLOWING SAND, SOIL, DIRT": "Polvo",
-};
 // Con menos siniestros la tasa es demasiado inestable para compararla
 const MIN_CRASHES = 200;
 

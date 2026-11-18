@@ -45,12 +45,18 @@ export function SegmentPriorityPanel() {
           )}
         >
           {win ? (
-            <p className="text-[15px] font-medium leading-snug text-slate-100">
-              El <b>10% de las cuadras</b> que señaló el modelo concentró el{" "}
-              <span className="hud-kpi text-2xl font-semibold tabular-nums text-red-300">{fmtPct(win.top10_capture_severe, 0)}</span>{" "}
-              de los siniestros graves {year ? `de ${year}` : "del año evaluado"}: {win.top10_lift.toLocaleString("es", { maximumFractionDigits: 1 })} veces lo esperado
-              si se eligieran al azar. Ahí conviene intervenir primero.
-            </p>
+            <div data-testid="priority-headline">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-300">Dónde intervenir primero</p>
+              <div className="mt-2 flex items-end gap-3">
+                <span className="hud-kpi hud-title priority-big text-[56px] font-bold leading-none tabular-nums">{fmtPct(win.top10_capture_severe, 0)}</span>
+                <span className="mb-1 rounded-full border border-slate-700 bg-slate-950/60 px-2.5 py-1 text-[13px] font-semibold tabular-nums text-slate-100">
+                  {win.top10_lift.toLocaleString("es", { maximumFractionDigits: 1 })}× el azar
+                </span>
+              </div>
+              <p className="mt-2 text-[15px] font-medium leading-snug text-slate-100">
+                de los siniestros graves {year ? `de ${year}` : "del año evaluado"} ocurrió en el <b>10{"\u00a0"}% de las cuadras</b> que señaló el modelo.
+              </p>
+            </div>
           ) : (
             <p className="text-xs text-slate-400">{metrics.isLoading ? "Cargando…" : "Sin métricas del modelo."}</p>
           )}
@@ -92,13 +98,19 @@ export function SegmentPriorityPanel() {
                     selectSegment({ ...p, coordinates: coords });
                     focus(coords);
                   }}
-                  className={cn("flex w-full items-center gap-2 rounded px-1.5 py-1 text-left text-[11px] text-slate-300 hover:bg-slate-800",
+                  className={cn("flex w-full items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-[11px] text-slate-300 hover:bg-slate-800",
                     active && "bg-slate-800 text-slate-100")}
                 >
-                  <span className="w-5 shrink-0 tabular-nums text-slate-400">{p.priority_rank}</span>
-                  <span className="min-w-0 flex-1 truncate" title={p.segment_id}>{p.segment_id}</span>
+                  <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-bold tabular-nums",
+                    p.priority_pct <= 0.01 ? "priority-rank-hot" : "bg-slate-800 text-slate-300")}>{p.priority_rank}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate" title={p.segment_id}>{p.segment_id}</span>
+                    <span className="mt-0.5 block h-1 overflow-hidden rounded-full bg-slate-800">
+                      <span className="priority-bar block h-full rounded-full" style={{ width: `${Math.round(p.p_alto * 100)}%` }} />
+                    </span>
+                  </span>
                   <span className="shrink-0 tabular-nums text-slate-400">{fmtNumber(p.crashes)} sin.</span>
-                  <span className="w-10 shrink-0 text-right font-semibold tabular-nums text-slate-100">{fmtPct(p.p_alto, 0)}</span>
+                  <span className="w-10 shrink-0 text-right text-[13px] font-semibold tabular-nums text-slate-100">{fmtPct(p.p_alto, 0)}</span>
                 </button>
               </li>
             );
