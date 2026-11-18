@@ -13,6 +13,7 @@ import "driver.js/dist/hints.css";
 import { useMapStore } from "@/stores/useMapStore";
 import { useUiStore, type PanelTab } from "@/stores/useUiStore";
 import { describe, GUIDE, type GuideKey } from "./guideContent";
+import { isMobileViewport } from "@/hooks/useIsMobile";
 
 import { markGuideSeen } from "./launcher";
 
@@ -47,7 +48,7 @@ const pickFirstSegment = () => {
 const FULL: Step[] = [
   { key: "welcome", before: showPriority },
   { key: "map" },
-  { key: "legend" },
+  { key: "legend", before: () => ui().setLegendOpen(true) },
   { key: "priorityHero", before: showPriority },
   { key: "priorityList" },
   { key: "segmentExplain", before: pickFirstSegment },
@@ -61,7 +62,7 @@ const FULL: Step[] = [
 ];
 
 const SECTION: Record<PanelTab, Step[]> = {
-  segments: [{ key: "priorityHero", before: showPriority }, { key: "priorityList" }, { key: "map" }, { key: "legend" }],
+  segments: [{ key: "priorityHero", before: showPriority }, { key: "priorityList" }, { key: "map" }, { key: "legend", before: () => ui().setLegendOpen(true) }],
   analytics: [
     { key: "analyticsSteps", before: openTab("analytics") },
     { key: "kpis" },
@@ -75,6 +76,9 @@ let active: Driver | null = null;
 
 function run(steps: Step[], onEnd?: () => void) {
   active?.destroy();
+  // En un teléfono no cabe un globo a la izquierda o derecha del panel: Driver.js elige
+  // arriba o abajo según el espacio, y el globo usa todo el ancho (ver index.css)
+  const mobile = isMobileViewport();
   const toDrive = (s: Step, i: number): DriveStep => {
     const e = GUIDE[s.key];
     return {
@@ -83,7 +87,7 @@ function run(steps: Step[], onEnd?: () => void) {
       waitForElement: 1500,
       skipMissingElement: true,
       popover: {
-        title: e.title, description: describe(e), side: "side" in e ? e.side : undefined, align: "start",
+        title: e.title, description: describe(e), side: !mobile && "side" in e ? e.side : undefined, align: mobile ? "center" : "start",
         // Sin «Anterior» en el primer paso
         ...(i === 0 ? { showButtons: ["next", "close"] as const } : {}),
       },
