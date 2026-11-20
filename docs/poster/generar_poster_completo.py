@@ -42,6 +42,43 @@ AQUA, LIGHT, ACC = RGBColor(0x7F, 0xD3, 0xDA), RGBColor(0xC9, 0xD6, 0xE0), RGBCo
 MAPBG = RGBColor(0x0B, 0x17, 0x22)
 
 
+def fig_captura_poster(boot: dict, out: Path, w_cm: float, h_cm: float) -> None:
+    """La gráfica de captura, dibujada al tamaño real del póster para que se lea a 2 m."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    INKc, MUTEDc, GRAYc, EMPHc, NAVYc = "#13212e", "#5b6b78", "#b4bec7", "#d9600f", "#0f3b57"
+    plt.rcParams.update({"font.family": "Inter", "font.size": 24, "axes.spines.top": False,
+                         "axes.spines.right": False, "axes.spines.left": False, "axes.edgecolor": "#dfe5ea"})
+    rows = [("Random Forest", "random_forest", GRAYc),
+            ("Regla: más siniestros el año anterior", "historial_siniestros", NAVYc),
+            ("XGBoost", "xgboost", GRAYc),
+            ("Regresión logística (elegido)", "logistic_regression", EMPHc),
+            ("Regla: más lesionados el año anterior", "historial_lesionados", GRAYc),
+            ("Regla: más graves el año anterior", "historial_graves", GRAYc)]
+    rows.sort(key=lambda r: boot[r[1]]["capture"])
+    fig, ax = plt.subplots(figsize=(w_cm / 2.54, h_cm / 2.54))
+    for i, (label, key, color) in enumerate(rows):
+        c, (lo, hi) = boot[key]["capture"], boot[key]["ci95"]
+        ax.plot([lo, hi], [i, i], color=color, lw=5, solid_capstyle="round", alpha=0.5)
+        ax.plot(c, i, "o", ms=20, color=color, mec="white", mew=2.5, zorder=3)
+        ax.text(hi + 0.012, i, fmt(c * 100) + " %", va="center", color=INKc, fontsize=26,
+                fontweight="bold" if color != GRAYc else "normal")
+    ax.axvline(0.10, color=MUTEDc, lw=2, ls=(0, (4, 4)))
+    ax.text(0.108, len(rows) - 0.45, "al azar: 10 %", color=MUTEDc, fontsize=22, va="center")
+    ax.set_yticks(range(len(rows)), [r[0] for r in rows])
+    for t, r in zip(ax.get_yticklabels(), rows):
+        t.set_color(INKc if r[2] != GRAYc else MUTEDc)
+        t.set_fontweight("bold" if r[2] != GRAYc else "normal")
+    ax.set_xlim(0, 0.56)
+    ax.set_ylim(-0.6, len(rows) - 0.2)
+    ax.set_xticks([0, 0.1, 0.2, 0.3, 0.4, 0.5], ["0 %", "10 %", "20 %", "30 %", "40 %", "50 %"])
+    ax.tick_params(axis="y", length=0, pad=12)
+    ax.tick_params(axis="x", colors=MUTEDc, labelsize=21)
+    fig.savefig(out, dpi=300, facecolor="white", bbox_inches="tight", pad_inches=0.05)
+    plt.close(fig)
+
+
 def build() -> None:
     OUT.mkdir(exist_ok=True)
     c = json.loads((ROOT / "docs/informe/cifras_informe.json").read_text(encoding="utf-8"))
@@ -181,31 +218,37 @@ def build() -> None:
     y3 = row2_end + 1.4
     hist = boot["historial_siniestros"]["capture"]
     P.section(M, y3, cw, 5, "Resultados: prioriza como el historial, y explica por qué")
-    fig_w = 41.0
-    pic = P.image(FIG / "01_captura_top10_cuadras.png", M, y3 + 3.2, w=fig_w)
-    hy = y3 + 3.2 + pic.height / 360000 + 0.3
-    P.text(M, hy, fig_w, 2.4,
+    fig_w = 43.0
+    P.text(M, y3 + 3.1, fig_w, 1.6, [[("Siniestros graves captados en el 10 % de cuadras priorizadas", {"bold": True}),
+                                      ("   (línea = margen de error)", {"color": MUTED, "size": 21})]], size=25)
+    fig_captura_poster(boot, OUT / "captura_poster.png", fig_w, 18.5)
+    pic = P.image(OUT / "captura_poster.png", M, y3 + 5.0, w=fig_w)
+    hy = y3 + 5.0 + pic.height / 360000 + 0.4
+    P.text(M, hy, fig_w, 2.6,
            [[("Con honestidad: ", {"bold": True, "color": ORANGE}),
              (f"la regla «más siniestros el año anterior» capta {fmt(hist * 100)} % y el modelo {fmt(cap * 100)} %; "
-              "el modelo suma la probabilidad y el porqué de cada cuadra.", {})]], size=22)
-    res_end = hy + 2.4
+              "el modelo suma la probabilidad y el porqué de cada cuadra.", {})]], size=23)
+    res_end = hy + 2.6
     rx = M + fig_w + 2.0
     rw = W - M - rx
-    km = [(fmt(lr["auc_roc_ovr_macro"], 2), "AUC por cuadra"), (f"{fmt(lr['top10_lift'], 1)}×", "mejor que el azar"),
-          (thousands(n_prio), "cuadras priorizadas")]
-    kh3 = 5.4
-    for i, (v, l) in enumerate(km):
-        ky3 = y3 + 3.2 + i * (kh3 + 0.7)
-        P.rect(rx, ky3, rw, kh3, TEAL_SOFT if i < 2 else ORANGE_SOFT, radius=0.06)
-        P.text(rx + 1.2, ky3, 17.0, kh3, v, size=72, bold=True, color=TEAL if i < 2 else ORANGE,
-               anchor=MSO_ANCHOR.MIDDLE)
-        P.text(rx + 18.0, ky3, rw - 19.0, kh3, l, size=28, color=INK, anchor=MSO_ANCHOR.MIDDLE)
-    py = y3 + 3.2 + 3 * (kh3 + 0.7)
+    km = [(fmt(lr["auc_roc_ovr_macro"], 2), "de acierto al ordenar cuadras por riesgo", "AUC · 0,5 = azar, 1 = perfecto",
+           TEAL_SOFT, TEAL),
+          (thousands(n_prio), "cuadras priorizadas para los próximos 12 meses", "el 10 % de 21.179 evaluadas",
+           ORANGE_SOFT, ORANGE)]
+    box_h = 6.4
+    kh3 = (res_end - (y3 + 3.2) - 2 * 0.8 - box_h) / 2
+    for i, (v, l, n, bg, fg) in enumerate(km):
+        ky3 = y3 + 3.2 + i * (kh3 + 0.8)
+        P.rect(rx, ky3, rw, kh3, bg, radius=0.06)
+        P.text(rx + 1.2, ky3, 17.5, kh3, v, size=88, bold=True, color=fg, anchor=MSO_ANCHOR.MIDDLE)
+        P.text(rx + 18.5, ky3, rw - 19.5, kh3, [l, [(n, {"size": 20, "color": MUTED})]], size=27,
+               color=INK, anchor=MSO_ANCHOR.MIDDLE, after=6)
+    py = y3 + 3.2 + 2 * (kh3 + 0.8)
     P.rect(rx, py, rw, res_end - py, PANEL, radius=0.06)
-    P.text(rx + 1.2, py + 0.6, rw - 2.4, res_end - py - 1.0,
-           [[("Modelo complementario, por siniestro", {"bold": True, "color": TEAL})],
-            [(f"AUC {fmt(td['auc_roc_ovr_macro'], 2)} · capta {fmt(td['lift'], 1)}× más casos graves. "
-              "Alimenta el Simulador de la app.", {})]], size=23, after=4)
+    P.text(rx + 1.2, py, rw - 2.4, res_end - py,
+           [[("Y un segundo modelo, por siniestro", {"bold": True, "color": TEAL})],
+            "Estima qué tan grave sería un choque según hora, clima, vía y tipo de choque. Alimenta el Simulador de la app."],
+           size=24, after=6, anchor=MSO_ANCHOR.MIDDLE)
 
     # ------------------------------------------------------------------ fila 4: hallazgos
     y4 = res_end + 1.4
@@ -231,14 +274,18 @@ def build() -> None:
     card_w = 38.0
     lw5 = cw - card_w - 2.0
     P.section(M, y5, lw5, 7, "Conclusiones")
-    concl = [[("Intervenir el 10 % de cuadras ", {}), (f"cubre cerca del {fmt(cap * 100, 0)} % de los graves", {"bold": True}),
-              (" del año siguiente.", {})],
-             [("Lo más respaldado: ", {}), ("bajar de 30 a 25 mph y proteger los cruces peatonales.", {"bold": True})],
-             [("Límite: el recall de graves (", {}), (fmt(td["recall_critical"], 2), {"bold": True}),
-              (") quedó justo bajo la meta.", {})]]
-    step = (foot_y - 0.6 - (y5 + 3.0)) / 3
-    for i, x in enumerate(concl):
-        P.text(M, y5 + 3.0 + i * step, lw5, step, [[("•  ", {"color": ORANGE, "bold": True})] + x], size=30, anchor=MSO_ANCHOR.MIDDLE)
+    concl = [(f"≈ {fmt(cap * 100, 0)} %", "de los siniestros graves se cubre interviniendo el 10 % de cuadras.",
+              ORANGE_SOFT, ORANGE),
+             ("30 → 25", "mph y cruces peatonales protegidos: la medida con más respaldo.", ORANGE_SOFT, ORANGE),
+             (fmt(td["recall_critical"], 2), "de recall en graves: el límite, justo bajo la meta de 0,60.", PANEL, BAD)]
+    cg5 = 1.0
+    cy5 = y5 + 3.2
+    ch5 = (foot_y - 0.6 - cy5 - 2 * cg5) / 3
+    for i, (v, d, bg, fg) in enumerate(concl):
+        ry5 = cy5 + i * (ch5 + cg5)
+        P.rect(M, ry5, lw5, ch5, bg, radius=0.08)
+        P.text(M + 1.2, ry5, 15.5, ch5, v, size=60, bold=True, color=fg, anchor=MSO_ANCHOR.MIDDLE)
+        P.text(M + 17.0, ry5, lw5 - 18.2, ch5, d, size=27, color=INK, anchor=MSO_ANCHOR.MIDDLE)
 
     kx = M + lw5 + 2.0
     ky = y5 + 0.2
@@ -266,7 +313,7 @@ def build() -> None:
            "Machine Learning, 45(1), 5–32. · Pedregosa, F. et al. (2011). Scikit-learn. JMLR, 12, 2825–2830. · "
            "Código: github.com/DeividCardenas/proyecto_final_espe",
            size=20, color=MUTED, spacing=1.1)
-    print(f"fila1 {row1_end:.1f} · fila2 {row2_end:.1f} · resultados {res_end:.1f} · conclusiones {y5:.1f}–{foot_y - 0.6:.1f} (paso {step:.2f})")
+    print(f"fila1 {row1_end:.1f} · fila2 {row2_end:.1f} · resultados {res_end:.1f} · conclusiones {y5:.1f}–{foot_y - 0.6:.1f}")
 
     pptx_path = OUT / f"{NAME}.pptx"
     P.prs.save(pptx_path)
